@@ -1,0 +1,2 @@
+# Anotações
+- Permitir seed
