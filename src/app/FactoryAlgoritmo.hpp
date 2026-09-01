@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "search/IAlgoritmoBusca.h"
+#include "search/IAlgoritmoBusca.hpp"
 
 enum class TipoBusca { BFS, IDDFS, ASTAR };
 

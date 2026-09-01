@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "cubo/EstadoCubo.h"
-#include "search/IAlgoritmoBusca.h"
-#include "view/IVisualizador.h"
+#include "cubo/EstadoCubo.hpp"
+#include "search/IAlgoritmoBusca.hpp"
+#include "view/IVisualizador.hpp"
 
 // Depende so de abstracoes (IVisualizador, IAlgoritmoBusca) - nunca conhece
 // VisualizadorTerminal/VisualizadorOpenGL nem BFS/IDDFS/AEstrela diretamente (DIP).

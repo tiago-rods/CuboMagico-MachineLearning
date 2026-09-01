@@ -1,4 +1,4 @@
-#include "view/terminal/VisualizadorTerminal.h"
+#include "view/terminal/VisualizadorTerminal.hpp"
 
 void VisualizadorTerminal::renderizar(const EstadoCubo& estado) {
     // TODO: desenhar planificacao em cruz (ver CLAUDE.md), cores via ANSI.

@@ -2,8 +2,8 @@
 
 #include <stack>
 
-#include "search/IFrontier.h"
-#include "search/NoBusca.h"
+#include "search/IFrontier.hpp"
+#include "search/NoBusca.hpp"
 
 // LIFO usada pela Busca em Profundidade Limitada Iterativa (IDDFS).
 class FrontierPilha : public IFrontier {

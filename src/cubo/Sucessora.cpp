@@ -1,4 +1,4 @@
-#include "cubo/Sucessora.h"
+#include "cubo/Sucessora.hpp"
 
 EstadoCubo aplicarMovimento(const EstadoCubo& estado, Movimento movimento) {
     // TODO: tabelas de permutacao de stickers por Face/Sentido.

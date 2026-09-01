@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cubo/EstadoCubo.h"
-#include "search/BuscaGenerica.h"
+#include "cubo/EstadoCubo.hpp"
+#include "search/BuscaGenerica.hpp"
 
 // Strategy: cada algoritmo de busca (BFS, IDDFS, A*) implementa esta
 // interface. O Controller so conhece IAlgoritmoBusca, nunca as classes

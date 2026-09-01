@@ -1,4 +1,4 @@
-#include "view/opengl/VisualizadorOpenGL.h"
+#include "view/opengl/VisualizadorOpenGL.hpp"
 
 void VisualizadorOpenGL::renderizar(const EstadoCubo& estado) {
     // TODO (Semana 3): janela freeglut, 8 cubies coloridos via glutSolidCube.

@@ -1,4 +1,4 @@
-#include "search/FrontierPilha.h"
+#include "search/FrontierPilha.hpp"
 
 void FrontierPilha::inserir(NoBusca* no) {
     // TODO

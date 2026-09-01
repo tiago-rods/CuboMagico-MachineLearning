@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "cubo/EstadoCubo.h"
-#include "view/Comando.h"
+#include "cubo/EstadoCubo.hpp"
+#include "view/Comando.hpp"
 
 // Strategy/DIP: o Controller depende so desta interface, nunca de
 // VisualizadorTerminal ou VisualizadorOpenGL diretamente.

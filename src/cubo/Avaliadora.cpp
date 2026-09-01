@@ -1,4 +1,4 @@
-#include "cubo/Avaliadora.h"
+#include "cubo/Avaliadora.hpp"
 
 bool ehEstadoObjetivo(const EstadoCubo& estado) {
     // TODO: cada face deve ter os 4 stickers da mesma cor.

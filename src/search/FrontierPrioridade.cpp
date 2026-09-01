@@ -1,4 +1,4 @@
-#include "search/FrontierPrioridade.h"
+#include "search/FrontierPrioridade.hpp"
 
 bool FrontierPrioridade::ComparadorF::operator()(const NoBusca* a, const NoBusca* b) const {
     // TODO: menor f = g+h deve ter prioridade (min-heap).

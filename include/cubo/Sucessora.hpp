@@ -3,9 +3,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "cubo/EstadoCubo.h"
-#include "cubo/Movimento.h"
-#include "search/NoBusca.h"
+#include "cubo/EstadoCubo.hpp"
+#include "cubo/Movimento.hpp"
+#include "search/NoBusca.hpp"
 
 // Pura: aplica um movimento e retorna o novo estado, sem efeitos colaterais.
 EstadoCubo aplicarMovimento(const EstadoCubo& estado, Movimento movimento);

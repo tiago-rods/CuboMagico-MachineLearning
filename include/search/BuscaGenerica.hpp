@@ -4,10 +4,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "cubo/EstadoCubo.h"
-#include "cubo/Movimento.h"
-#include "search/IFrontier.h"
-#include "search/NoBusca.h"
+#include "cubo/EstadoCubo.hpp"
+#include "cubo/Movimento.hpp"
+#include "search/IFrontier.hpp"
+#include "search/NoBusca.hpp"
 
 struct ResultadoBusca {
     bool encontrou = false;

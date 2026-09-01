@@ -1,4 +1,4 @@
-#include "search/IDDFS.h"
+#include "search/IDDFS.hpp"
 
 ResultadoBusca IDDFS::resolver(const EstadoCubo& estadoInicial) {
     // TODO: iterative deepening chamando buscaGenerica com uma FrontierPilha

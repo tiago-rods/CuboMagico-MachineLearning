@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cubo/EstadoCubo.h"
+#include "cubo/EstadoCubo.hpp"
 
 // Funcao objetivo: cada face do cubo tem uma unica cor?
 bool ehEstadoObjetivo(const EstadoCubo& estado);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "view/IVisualizador.h"
+#include "view/IVisualizador.hpp"
 
 // TODO (Semana 3): renderizar os 8 cubies em 3D com freeglut (pipeline fixo).
 // So compilado quando WITH_OPENGL=ON no CMake.

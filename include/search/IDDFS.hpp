@@ -1,6 +1,6 @@
 #pragma once
 
-#include "search/IAlgoritmoBusca.h"
+#include "search/IAlgoritmoBusca.hpp"
 
 // Iterative deepening: chama o mesmo BuscaGenerica repetidas vezes, com uma
 // FrontierPilha nova a cada rodada, aumentando o limite de profundidade de

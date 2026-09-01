@@ -1,9 +1,9 @@
 #include <doctest/doctest.h>
 
-#include "cubo/EstadoCubo.h"
-#include "search/AEstrela.h"
-#include "search/BFS.h"
-#include "search/IDDFS.h"
+#include "cubo/EstadoCubo.hpp"
+#include "search/AEstrela.hpp"
+#include "search/BFS.hpp"
+#include "search/IDDFS.hpp"
 
 TEST_CASE("BFS, IDDFS e A* encontram solucoes do mesmo tamanho otimo") {
     // TODO: gerar scrambles pequenos (1 a 5 movimentos) com seed fixa e

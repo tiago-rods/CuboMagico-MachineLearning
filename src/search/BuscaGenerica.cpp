@@ -1,4 +1,4 @@
-#include "search/BuscaGenerica.h"
+#include "search/BuscaGenerica.hpp"
 
 ResultadoBusca buscaGenerica(IFrontier& estrutura,
                               const EstadoCubo& estadoInicial,

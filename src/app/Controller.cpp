@@ -1,4 +1,4 @@
-#include "app/Controller.h"
+#include "app/Controller.hpp"
 
 Controller::Controller(std::unique_ptr<IVisualizador> visualizador)
     : visualizador_(std::move(visualizador)) {

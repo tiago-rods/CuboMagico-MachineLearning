@@ -1,6 +1,6 @@
 #pragma once
 
-#include "search/IAlgoritmoBusca.h"
+#include "search/IAlgoritmoBusca.hpp"
 
 class AEstrela : public IAlgoritmoBusca {
 public:

@@ -1,4 +1,4 @@
-#include "cubo/EstadoCubo.h"
+#include "cubo/EstadoCubo.hpp"
 
 bool EstadoCubo::operator==(const EstadoCubo& outro) const {
     // TODO: comparar os 24 stickers.

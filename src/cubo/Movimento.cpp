@@ -1,4 +1,4 @@
-#include "cubo/Movimento.h"
+#include "cubo/Movimento.hpp"
 
 bool Movimento::operator==(const Movimento& outro) const {
     // TODO

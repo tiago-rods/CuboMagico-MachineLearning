@@ -1,6 +1,6 @@
 #pragma once
 
-#include "view/IVisualizador.h"
+#include "view/IVisualizador.hpp"
 
 // Desenho ASCII/ANSI do cubo (planificacao em cruz) + menu no terminal.
 class VisualizadorTerminal : public IVisualizador {

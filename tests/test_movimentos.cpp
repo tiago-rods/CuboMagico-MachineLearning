@@ -1,8 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
-#include "cubo/EstadoCubo.h"
-#include "cubo/Sucessora.h"
+#include "cubo/EstadoCubo.hpp"
+#include "cubo/Sucessora.hpp"
 
 TEST_CASE("quatro giros iguais voltam ao estado inicial") {
     // TODO

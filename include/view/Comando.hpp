@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "cubo/Movimento.h"
+#include "cubo/Movimento.hpp"
 
 enum class TipoComando {
     MOVIMENTO,

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cubo/EstadoCubo.h"
-#include "cubo/Movimento.h"
+#include "cubo/EstadoCubo.hpp"
+#include "cubo/Movimento.hpp"
 
 struct NoBusca {
     EstadoCubo estado;

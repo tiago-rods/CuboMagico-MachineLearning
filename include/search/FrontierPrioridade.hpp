@@ -3,8 +3,8 @@
 #include <queue>
 #include <vector>
 
-#include "search/IFrontier.h"
-#include "search/NoBusca.h"
+#include "search/IFrontier.hpp"
+#include "search/NoBusca.hpp"
 
 // Fila de prioridade usada pelo A*, ordenada por f = g + h (menor primeiro).
 class FrontierPrioridade : public IFrontier {

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "view/IVisualizador.h"
+#include "view/IVisualizador.hpp"
 
 enum class TipoView { TERMINAL, OPENGL };
 

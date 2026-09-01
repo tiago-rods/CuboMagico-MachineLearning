@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
-#include "cubo/Avaliadora.h"
-#include "cubo/EstadoCubo.h"
+#include "cubo/Avaliadora.hpp"
+#include "cubo/EstadoCubo.hpp"
 
 TEST_CASE("estado resolvido e objetivo com heuristica zero") {
     // TODO

@@ -2,8 +2,8 @@
 
 #include <queue>
 
-#include "search/IFrontier.h"
-#include "search/NoBusca.h"
+#include "search/IFrontier.hpp"
+#include "search/NoBusca.hpp"
 
 // FIFO usada pela Busca em Largura (BFS).
 class FrontierFila : public IFrontier {
