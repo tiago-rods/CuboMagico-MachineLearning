@@ -79,6 +79,78 @@ App/Controller  →  depende de abstrações, nunca de implementações concreta
   porque cada giro de face move exatamente 4 dos 8 cantos, logo
   `movimentos_necessários >= ceil(k/4)`.
 
+### Numeração dos stickers (decisão de implementação)
+
+`índice = face*4 + pos`, ordem de faces U=0,D=1,F=2,B=3,L=4,R=5. Dentro de cada
+face, `pos` segue sempre a mesma convenção olhando a face de fora:
+`0`=superior-esquerda, `1`=superior-direita, `2`=inferior-esquerda,
+`3`=inferior-direita. Planificação em cruz (U em cima de F, D embaixo de F, L à
+esquerda de F, R à direita de F, B à direita de R):
+
+```
+                +--------+
+                |  0   1 |
+                |  2   3 |
+      +--------+--------+--------+--------+
+      | 16  17 |  8   9 | 20  21 | 12  13 |
+      | 18  19 | 10  11 | 22  23 | 14  15 |
+      +--------+--------+--------+--------+
+                |  4   5 |
+                |  6   7 |
+                +--------+
+```
+
+Os 8 cantos (trincas de índices que sempre giram juntos, usadas tanto por
+`aplicarMovimento` quanto por `heuristicaCantos`):
+
+| Canto | U/D | F/B | L/R |
+|---|---|---|---|
+| ULF | 2 | 8 | 17 |
+| URF | 3 | 9 | 20 |
+| DLF | 4 | 10 | 19 |
+| DRF | 5 | 11 | 22 |
+| ULB | 0 | 13 | 16 |
+| URB | 1 | 12 | 21 |
+| DLB | 6 | 15 | 18 |
+| DRB | 7 | 14 | 23 |
+
+Regra de rotação própria da face (mesma para as 6 faces, já que `pos` é sempre
+"visto de fora"): HORARIO move os stickers no ciclo `0→1→3→2→0`; ANTI_HORARIO é
+o ciclo inverso `0→2→3→1→0`; DUPLO troca `0↔3` e `1↔2`. O ciclo dos stickers
+vizinhos (linha/coluna de cada face lateral arrastada pela camada) é definido
+por face em `aplicarMovimento`.
+
+### Tabela de permutação (aplicarMovimento)
+
+Como cada ciclo de permutação tem 4 elementos, só é necessário derivar a
+tabela HORARIO por face: `ANTI_HORARIO` é o mesmo ciclo aplicado 3 vezes
+(equivale ao inverso) e `DUPLO` é aplicado 2 vezes. `aplicarMovimento` decide
+apenas **quantas vezes** rodar os ciclos daquela face (1x/2x/3x) — não existem
+tabelas separadas para os 18 movimentos, só para as 6 faces.
+
+Todo giro mexe em 12 stickers: 1 ciclo de 4 na própria face (regra acima) +
+2 ciclos de 4 nos stickers vizinhos (2 por cada uma das 4 faces laterais).
+Cada ciclo é escrito como `(a,b,c,d)`, significando que o conteúdo anda
+`a→b→c→d→a` (ou seja: `novo[b]=antigo[a]`, `novo[c]=antigo[b]`,
+`novo[d]=antigo[c]`, `novo[a]=antigo[d]`).
+
+Derivado a partir da tabela de cantos acima (regra de redirecionamento de
+direção do sticker após o giro de 90°, validada contra o fato conhecido de
+que R horário leva Frente→Cima):
+
+| Face | Próprios | Lateral 1 | Lateral 2 |
+|---|---|---|---|
+| U | (0,1,3,2) | (8,16,12,20) | (9,17,13,21) |
+| D | (4,5,7,6) | (10,22,14,18) | (19,11,23,15) |
+| F | (8,9,11,10) | (2,20,5,19) | (17,3,22,4) |
+| B | (12,13,15,14) | (1,16,6,23) | (21,0,18,7) |
+| L | (16,17,19,18) | (0,8,4,15) | (13,2,10,6) |
+| R | (20,21,23,22) | (9,1,14,5) | (3,12,7,11) |
+
+Não existe padrão simples "posição k de uma face sempre vai pra posição k de
+outra" entre faces diferentes (U por coincidência mantém isso, R não) — cada
+linha da tabela foi derivada individualmente, não deduzida por simetria.
+
 ### O laço genérico
 
 Uma única função `buscaGenerica(IFrontier&, estadoInicial, sucessora, ehObjetivo,

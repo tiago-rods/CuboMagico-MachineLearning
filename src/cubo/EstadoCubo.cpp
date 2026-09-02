@@ -23,7 +23,9 @@ std::size_t HashEstado::operator()(const EstadoCubo& estado) const {
 EstadoCubo estadoResolvido() {
     EstadoCubo estado{};
     const Cor corPorFace[6] = {
-        Cor::BRANCO, Cor::AMARELO, Cor::VERDE, Cor::AZUL, Cor::LARANJA, Cor::VERMELHO
+        Cor::BRANCO, Cor::AMARELO, 
+        Cor::VERDE, Cor::AZUL, 
+        Cor::LARANJA, Cor::VERMELHO
     };
 
     for (int face = 0; face < 6; ++face){
