@@ -45,8 +45,50 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
 
 
 
-# Pontos Importantes
-  Anti horario conta como 3 movimentos, verificar para deixar 1 so movimento pela IA
-  Problemas: IA iria considerar todos os movimentos de 1 de custo antes do de 3, pensar sobre isso
-  antihorário é necessário?
-  tem que aceitar que qualquer cubo montado é uma solução, independente da orientação das faces
+## Decisões importantes (heurística e busca)
+
+Decisões que impactam diretamente como BFS/IDDFS/A* vão se comportar — documentadas
+aqui pra não se perderem antes de `sucessoraCubo`/`sucessoraComHeuristica` serem
+implementadas.
+
+### Custo de cada movimento é sempre 1, independente do sentido
+- **Decisão**: os 18 `Movimento`s (6 faces × 3 sentidos) custam **1** cada na busca,
+  ou seja, `filho->profundidade = atual->profundidade + 1` sempre — nunca usar
+  `passosPara(sentido)` (que retorna 1/2/3) como custo.
+- **Motivo**: `passosPara` é só um detalhe de implementação de `aplicarMovimento`
+  (quantas vezes rodar o ciclo de 90° internamente pra calcular o resultado de um
+  giro anti-horário ou duplo). Fisicamente um giro anti-horário é **um** movimento
+  de pulso só, igual ao horário — não são 3 movimentos.
+- **Impacto se implementado errado**: se `sucessoraCubo` usasse `passosPara` como
+  custo, o BFS deixaria de ser BFS de verdade (ele assume custo uniforme = 1 por
+  aresta; a "camada N" passaria a misturar profundidades reais diferentes) e o A*
+  ficaria inconsistente com a heurística (que conta em "número de giros", não em
+  "número de rotações de 90° internas"). Era exatamente a dúvida "a IA iria
+  considerar todos os movimentos de custo 1 antes dos de custo 3" — resposta: não
+  pode acontecer, por isso o custo tem que ser fixado em 1 na hora de criar o
+  `NoBusca` filho, nunca herdado de `passosPara`.
+
+### ANTI_HORARIO precisa continuar sendo um movimento de primeira classe
+- **Decisão**: manter os 3 sentidos (`HORARIO`, `ANTI_HORARIO`, `DUPLO`) como
+  movimentos distintos e válidos pra sucessora gerar, mesmo sabendo que
+  `ANTI_HORARIO` é implementado internamente como 3x o ciclo horário.
+- **Motivo**: tirar `ANTI_HORARIO` do conjunto de movimentos (deixando só
+  `HORARIO`/`DUPLO`) obrigaria a IA a gastar 3 movimentos pra fazer o que uma
+  pessoa faz com um giro só, inflando artificialmente a profundidade da busca e
+  o tamanho da solução mostrada — além de não bater com o God's Number (11 HTM)
+  usado como referência de limite de scramble/IDDFS, que já conta giro
+  anti-horário como 1 movimento.
+
+### Objetivo é "cada face com 1 cor só", não "bater com as cores fixas do estadoResolvido()"
+- **Decisão**: `ehEstadoObjetivo` verifica só se cada face tem os 4 stickers da
+  mesma cor entre si — não compara com o mapeamento fixo de cor por face.
+- **Motivo**: resolve a dúvida "tem que aceitar que qualquer cubo montado é uma
+  solução, independente da orientação das faces" — como o cubo 2x2 não tem
+  centros fixos (só cantos), a noção de "resolvido" já é orientação-agnóstica por
+  natureza. Já implementado assim em `Avaliadora.cpp` (ver progresso 03-09-2026);
+  manter esse comportamento se `ehEstadoObjetivo` for revisitado depois.
+- **Atenção**: isso é diferente de `heuristicaCantos`, que **precisa** comparar
+  contra um `estadoResolvido()` fixo (não importa qual configuração, só precisa
+  ser sempre a mesma referência) pra fazer sentido como heurística admissível — os
+  dois usam critérios diferentes de propósito de forma intencional, não é
+  inconsistência.
