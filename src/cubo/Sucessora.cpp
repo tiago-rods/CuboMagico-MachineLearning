@@ -12,6 +12,7 @@ namespace{
         CicloPermutacao lateral2;
     };
 
+
     const TabelaFace& tabelaFace(Face face){
         static const TabelaFace tabelas[6] = {
             /* U */ {{{0, 1, 3, 2}},     {{8, 16, 12, 20}}, {{9, 17, 13, 21}}},
