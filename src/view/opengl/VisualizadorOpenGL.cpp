@@ -1,6 +1,8 @@
 #include "view/opengl/VisualizadorOpenGL.hpp"
 #include <GL/freeglut.h>
 
+VisualizadorOpenGL* VisualizadorOpenGL::instancia_ = nullptr;
+
 void VisualizadorOpenGL::inicializarJanela(){
     // depois anotar o que cada coisa faz
     instancia_ = this;
@@ -64,7 +66,7 @@ void VisualizadorOpenGL::callbackMouseArrasto(int x, int y) {
 void VisualizadorOpenGL::renderizar(const EstadoCubo& estado) {
     estadoAtual_ = estado;
 
-    if(!janelaCriada_) inicializarJanela;
+    if(!janelaCriada_) inicializarJanela();
 
     glutPostRedisplay();
     glutMainLoopEvent();
