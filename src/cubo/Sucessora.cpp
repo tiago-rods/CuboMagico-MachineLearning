@@ -50,7 +50,6 @@ namespace{
             default:
                 return 0; // nunca deve acontecer
         }
-        return 1;
     }
 // Namespace anonimo: CicloPermutacao, TabelaFace, tabelaFace, aplicaCicloHorario
 // e passosPara sao detalhes de implementacao de aplicarMovimento, sem uso fora
