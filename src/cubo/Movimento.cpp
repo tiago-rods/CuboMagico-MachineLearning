@@ -1,5 +1,4 @@
 #include "cubo/Movimento.hpp"
-
 #include <stdexcept>
 
 // Dois movimentos sao iguais se face e sentido coincidem.
