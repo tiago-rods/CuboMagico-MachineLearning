@@ -229,6 +229,42 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
 
 ## Verificação
 
+### Status da implementação (16/09/2026)
+
+- **Pronto**: `EstadoCubo`, `Movimento`, `Avaliadora` (`ehEstadoObjetivo` +
+  `heuristicaCantos`), `Sucessora` completo (`aplicarMovimento` +
+  `sucessoraCubo`/`sucessoraComHeuristica`).
+- **Pendente**: as 3 `Frontier*`, `BuscaGenerica` (laço genérico —
+  requisito crítico), `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`,
+  `Controller`, `VisualizadorTerminal`. Todos ainda são stubs com `// TODO`.
+- Detalhes de decisão de cada etapa ficam em `docs/anotacoes.md` (seção
+  "Progresso").
+
+### Status dos testes (16/09/2026)
+
+- `tests/test_movimentos.cpp` e `tests/test_avaliadora.cpp` estão implementados
+  e passando: **8 test cases / 34 assertions, 0 falhas**.
+  - `test_movimentos.cpp`: valida `aplicarMovimento` para as 6 faces via
+    `SUBCASE` — 4×mesmo giro = identidade, giro+inverso = identidade,
+    `DUPLO` = 2×`HORARIO`.
+  - `test_avaliadora.cpp`: estado resolvido → `ehEstadoObjetivo`=true e
+    `heuristicaCantos`=0; 1 movimento → deixa de ser objetivo e
+    `heuristicaCantos`=1.
+  - `test_busca.cpp` ainda são `TEST_CASE` vazios — dependem de
+    `sucessoraCubo`/`sucessoraComHeuristica`, `Frontier*`, `BuscaGenerica` e
+    `BFS`/`IDDFS`/`AEstrela`, que ainda são stubs.
+- Build local usado para validar (MSYS2 g++ + Ninja):
+  ```
+  cmake -S . -B build -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+  cmake --build build --target cubo_tests
+  build\tests\cubo_tests.exe
+  ```
+  O `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` é necessário com CMake >= 4.0: o
+  `CMakeLists.txt` do doctest (baixado via `FetchContent`) declara uma versão
+  mínima antiga demais e o CMake recusa configurar sem essa flag.
+
+### Checklist de verificação (plano completo)
+
 - Testes unitários (`doctest`): 4×mesmo giro = identidade; giro+inverso = identidade;
   `U2` = `U,U`; estado resolvido → objetivo=true, heurística=0.
 - Rodar os 3 algoritmos no mesmo scramble pequeno (1-5 movimentos, seed fixa) e checar

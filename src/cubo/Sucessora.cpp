@@ -1,4 +1,5 @@
 #include "cubo/Sucessora.hpp"
+#include "cubo/Avaliadora.hpp"
 
 namespace{
 // Um ciclo de 4 indices: o conteudo anda indices[0] -> indices[1] -> indices[2] -> indices[3] -> indices[0].
@@ -70,18 +71,50 @@ EstadoCubo aplicarMovimento(const EstadoCubo& estado, Movimento movimento) {
 }
 
 
-//==== Depende de heuristicaCantos.hpp, que ainda nao existe. ====
+namespace{
+    const Face TODAS_FACES[6] = {Face::U, Face::D, Face::L, Face::R, Face::F, Face::B};
+    const Sentido TODOS_SENTIDOS[3] = {Sentido::HORARIO, Sentido::ANTI_HORARIO, Sentido::DUPLO};
 
-std::vector<NoBusca*> sucessoraCubo(NoBusca* atual,
-                                     std::unordered_set<EstadoCubo, HashEstado>* visitados) {
-    // TODO: gerar ate 18 filhos (aplicarMovimento para cada Face/Sentido),
-    // podar o movimento inverso ao ultimo e, se 'visitados' != nullptr,
-    // descartar estados repetidos.
-    return {};
+    std::vector<NoBusca*> gerarFilhos(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados, bool calcularHeuristica){
+        std::vector<NoBusca*> filhos;
+
+        bool temInverso = atual->pai != nullptr;
+        Movimento inversoDoUltimo = temInverso ? movimentoInverso(atual->movimentoAplicado) : Movimento{};
+
+        for(Face face : TODAS_FACES){
+            for(Sentido sentido : TODOS_SENTIDOS) {
+                Movimento mov{face, sentido};
+                if(temInverso && mov == inversoDoUltimo){
+                    continue; // necessario: sem isso o mov podado ainda seria expandido abaixo
+                }
+                EstadoCubo novoEstado = aplicarMovimento(atual->estado, mov);
+
+                if(visitados != nullptr){
+                    if(visitados->find(novoEstado) != visitados->end()){
+                        continue;
+                    }
+                    visitados->insert(novoEstado);
+                }
+
+                NoBusca* filho = new NoBusca();
+                filho->estado = novoEstado;
+                filho->pai = atual;
+                filho->movimentoAplicado= mov;
+                filho->profundidade = atual->profundidade + 1;
+
+                if (calcularHeuristica) filho->h = heuristicaCantos(novoEstado);
+
+                filhos.push_back(filho);
+            }
+        }
+        return filhos;
+    }
 }
 
-std::vector<NoBusca*> sucessoraComHeuristica(NoBusca* atual,
-                                              std::unordered_set<EstadoCubo, HashEstado>* visitados) {
-    // TODO: igual a sucessoraCubo, preenchendo tambem filho->h via heuristicaCantos.
-    return {};
+std::vector<NoBusca*> sucessoraCubo(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados) {
+    return gerarFilhos(atual, visitados, false);
+}
+
+std::vector<NoBusca*> sucessoraComHeuristica(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados) {
+    return gerarFilhos(atual, visitados, true);
 }

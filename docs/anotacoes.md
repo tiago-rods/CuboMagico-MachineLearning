@@ -2,14 +2,21 @@
 - Permitir seed
 
 ## Próximos passos (TODO)
-- Remover o `return 1;` morto depois do `switch` em `Sucessora.cpp::passosPara`.
-- Preencher os testes de `test_movimentos.cpp` (4x mesmo giro = identidade,
-  giro+inverso = identidade, `U2` = dois giros simples) pra validar a tabela
-  de permutação de `aplicarMovimento`.
-- `Avaliadora.cpp`: `ehEstadoObjetivo` e `heuristicaCantos` (usa a tabela de
-  cantos do `CLAUDE.md`).
-- `Sucessora.cpp`: `sucessoraCubo` e `sucessoraComHeuristica` (dependem de
-  `aplicarMovimento` já pronto e de `heuristicaCantos` pra versão com A*).
+- As 3 `Frontier*` (`FrontierFila`, `FrontierPilha`, `FrontierPrioridade`) —
+  wrapping mecânico de `std::queue`/`std::stack`/`std::priority_queue`; a
+  única pegadinha é o `ComparadorF` (min-heap: `a->f() > b->f()`).
+- `BuscaGenerica.cpp`: o laço genérico exigido pelo enunciado (requisito
+  crítico, -6 pts se BFS/IDDFS/A* não compartilharem literalmente esta
+  função). Também é o lugar natural pra decidir e implementar a limpeza
+  (`delete`) dos `NoBusca*` alocados por `sucessoraCubo`/`sucessoraComHeuristica`
+  — ninguém libera esses nós ainda.
+- `BFS.cpp`/`IDDFS.cpp`/`AEstrela.cpp`: wiring fino (montar `Frontier` +
+  `visitados` certos e chamar `buscaGenerica`).
+- `FactoryAlgoritmo.cpp`, `Controller.cpp`, `VisualizadorTerminal.cpp`: MVP
+  jogável em terminal.
+- Permitir seed no embaralhar (item já citado no topo) — decidir se vira uma
+  função livre tipo `embaralhar(int nMovimentos, unsigned seed)`, reusável
+  tanto pelo `Controller::tratarEmbaralhar` quanto por `test_busca.cpp`.
 
 ## Progresso
 
@@ -44,6 +51,39 @@ em `Avaliadora.cpp`, static const EstadoCubo = resovido, calcula o cubo resolvid
 A tabela CANTOS é uma copia da contida no README.md, só reorganizada como array de structs para facilitar a iteração
 
 
+
+### 16-09-2026
+- Removido o `return 1;` morto depois do `switch` em `passosPara`
+  (`Sucessora.cpp`) — item que já estava anotado como TODO.
+- `test_movimentos.cpp`/`test_avaliadora.cpp` preenchidos e passando (8 test
+  cases / 34 assertions) — validam `aplicarMovimento` (4x mesmo giro =
+  identidade, giro+inverso = identidade, DUPLO = 2x HORARIO, nas 6 faces) e
+  `Avaliadora` (objetivo/heurística no estado resolvido e após 1 movimento).
+  Status detalhado em `README.md` > Verificação > Status dos testes.
+- `Sucessora.cpp`: `sucessoraCubo`/`sucessoraComHeuristica` implementadas.
+  Decisões:
+  - As duas funções chamam uma auxiliar comum `gerarFilhos(atual, visitados,
+    calcularHeuristica)` no namespace anônimo, pra não duplicar o loop de 18
+    movimentos — só `calcularHeuristica` decide se preenche `filho->h`.
+  - Poda do movimento inverso: só ocorre quando `atual->pai != nullptr`
+    (a raiz não tem o que podar); usa `movimentoInverso` já existente em
+    `Movimento.hpp`.
+  - Dedup contra `visitados` só roda quando o ponteiro não é `nullptr` — IDDFS
+    vai chamar passando `nullptr` de propósito (ver decisão "sem visitados
+    globais" abaixo).
+  - Custo sempre +1 em `profundidade`, nunca `passosPara` (ver decisão
+    "custo de cada movimento é sempre 1").
+  - **Pendência conhecida**: `gerarFilhos` faz `new NoBusca()` pra cada filho
+    e ninguém dá `delete` ainda. Decisão adiada de propósito pra
+    `BuscaGenerica` (Fase 4 do roteiro de implementação), que é quem sabe
+    quando um nó deixou de ser necessário.
+  - Bugs pegos só na hora de compilar (não na leitura): faltou vírgula entre
+    os dois primeiros parâmetros de `gerarFilhos` (`NoBusca* atual
+    std::unordered_set<...>` sem `,`), typo `unorded_set` -> `unordered_set`,
+    e `filhos.pushback(...)` -> `push_back` (faltou o `_`). Lição: esses
+    typos de nome de função/tipo não aparecem revisando o código a olho tão
+    rápido quanto compilando — compilar cedo (mesmo sem testes prontos pra
+    aquele trecho) pega isso na hora.
 
 ## Decisões importantes (heurística e busca)
 
