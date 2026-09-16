@@ -72,43 +72,53 @@ EstadoCubo aplicarMovimento(const EstadoCubo& estado, Movimento movimento) {
 
 
 namespace{
+    Face faceOposta(Face face){
+        switch (face){
+            case Face::U: return Face::D;
+            case Face::D: return Face::U;
+            case Face::L: return Face::R;
+            case Face::R: return Face::L;
+            case Face::F: return Face::B;
+            case Face::B: return Face::F;
+        }
+        return face;
+    }
     const Face TODAS_FACES[6] = {Face::U, Face::D, Face::L, Face::R, Face::F, Face::B};
     const Sentido TODOS_SENTIDOS[3] = {Sentido::HORARIO, Sentido::ANTI_HORARIO, Sentido::DUPLO};
 
     std::vector<NoBusca*> gerarFilhos(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados, bool calcularHeuristica){
         std::vector<NoBusca*> filhos;
 
-        bool temInverso = atual->pai != nullptr;
-        Movimento inversoDoUltimo = temInverso ? movimentoInverso(atual->movimentoAplicado) : Movimento{};
+        bool temPai = atual->pai != nullptr;
+        Face faceDoUltimo = temPai ? atual->movimentoAplicado.face : Face::U; // só lido quando tem pai
 
         for(Face face : TODAS_FACES){
-            for(Sentido sentido : TODOS_SENTIDOS) {
+            //poda 1: girar a mesma face 2x seguidas semrpe reduz a 1 giro só (ou identidade)
+            //mais forte que só bloquear o inverso exato, já cobre esse caso também 
+            if(temPai && face == faceDoUltimo) continue;
+            if(temPai && face == faceOposta(faceDoUltimo) && static_cast<int>(face) > static_cast<int>(faceDoUltimo)) continue;
+            
+            for(Sentido sentido : TODOS_SENTIDOS){
                 Movimento mov{face, sentido};
-                if(temInverso && mov == inversoDoUltimo){
-                    continue; // necessario: sem isso o mov podado ainda seria expandido abaixo
-                }
                 EstadoCubo novoEstado = aplicarMovimento(atual->estado, mov);
 
                 if(visitados != nullptr){
-                    if(visitados->find(novoEstado) != visitados->end()){
-                        continue;
-                    }
+                    if(visitados->find(novoEstado) != visitados->end()) continue;
                     visitados->insert(novoEstado);
                 }
-
                 NoBusca* filho = new NoBusca();
                 filho->estado = novoEstado;
                 filho->pai = atual;
-                filho->movimentoAplicado= mov;
+                filho->movimentoAplicado = mov;
                 filho->profundidade = atual->profundidade + 1;
 
-                if (calcularHeuristica) filho->h = heuristicaCantos(novoEstado);
+                if(calcularHeuristica) filho->h = heuristicaCantos(novoEstado);
 
                 filhos.push_back(filho);
-            }
+            }   
         }
         return filhos;
-    }
+    }   
 }
 
 std::vector<NoBusca*> sucessoraCubo(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados) {

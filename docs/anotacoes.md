@@ -1,3 +1,7 @@
+# Fontes
+https://github.com/SebLague/Rubiks-Cube
+https://www.youtube.com/watch?v=fy0HRViXZnE
+
 # Anotações
 - Permitir seed
 
@@ -61,6 +65,17 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
   `Avaliadora` (objetivo/heurística no estado resolvido e após 1 movimento).
   Status detalhado em `README.md` > Verificação > Status dos testes.
 - `Sucessora.cpp`: `sucessoraCubo`/`sucessoraComHeuristica` implementadas.
+  **Em termos simples**: a partir de um estado do cubo, a função tenta os 18
+  giros possíveis (6 faces × 3 sentidos) e devolve a lista dos estados
+  resultantes — ou seja, "para onde dá pra ir daqui com mais um movimento".
+  Duas restrições evitam trabalho inútil: (1) não gera de volta o giro que
+  desfaria o último movimento aplicado, já que isso só voltaria pro estado
+  anterior; (2) se uma lista de estados já visitados for passada, descarta
+  qualquer resultado que já esteja nela. `sucessoraComHeuristica` faz
+  exatamente o mesmo, e além disso anota em cada estado gerado uma
+  estimativa de quão longe ele está do cubo resolvido (via
+  `heuristicaCantos`) — é essa estimativa que a busca A* vai usar depois
+  pra decidir qual estado explorar primeiro.
   Decisões:
   - As duas funções chamam uma auxiliar comum `gerarFilhos(atual, visitados,
     calcularHeuristica)` no namespace anônimo, pra não duplicar o loop de 18
@@ -132,3 +147,48 @@ implementadas.
   ser sempre a mesma referência) pra fazer sentido como heurística admissível — os
   dois usam critérios diferentes de propósito de forma intencional, não é
   inconsistência.
+
+## Inspiração externa: Sebastian Lague — Rubik's Cube (C#/Unity)
+
+Vídeo: youtube.com/watch?v=fy0HRViXZnE · Repo: github.com/SebLague/Rubiks-Cube
+(cubo 3x3, C#/Unity — não dá pra copiar código direto, mas duas ideias de
+design valem a pena registrar).
+
+**O que ele fez**: estado do cubo = dois `ulong` (`EdgeState`/`CornerState`),
+cada cubelet empacotado em 5 bits (ID + orientação); cada movimento é uma
+tabela pré-computada de máscaras/rotações de bits (`BitShiftData`), aplicada
+com shifts em vez de iterar array. `Equals`/hash viram comparação de 1-2
+inteiros. Ele tem 3 solvers independentes (`GreedySolver`, `CFOPSolver`,
+`DominoSolver`) e **cada um com seu próprio laço de busca** — não existe um
+laço genérico compartilhado entre eles.
+
+**O que NÃO vamos aproveitar (e por quê)**:
+- Reescrever `EstadoCubo` pra bit-packing: ganho de performance real, mas é
+  uma reescrita arriscada de algo que já está implementado, testado (34
+  assertions) e a poucos dias do prazo — o 2x2 tem só 8 cantos, então o
+  `std::array<Cor,24>` atual não é gargalo que justifique o risco agora.
+- Solvers sem laço genérico compartilhado: é o oposto do que o enunciado
+  pede pra gente — BFS/IDDFS/A* **precisam** compartilhar literalmente
+  `buscaGenerica` (-6 pts se não compartilharem). Não seguir esse padrão dele
+  aqui é intencional, não descuido.
+
+**O que vale trazer pro nosso `gerarFilhos`/`Sucessora.cpp` (ou pra geração de
+filhos dentro de `BuscaGenerica`/`IDDFS` na Fase 4/5)** — duas podas de busca
+do `GreedySolver.Search`, mais fortes que a poda atual (só bloqueia o inverso
+exato do último movimento):
+1. **Nunca girar a mesma face duas vezes seguidas**: dois giros consecutivos
+   na mesma face sempre se reduzem a um giro só (ou à identidade) — então
+   gerar `mov.face == atual->movimentoAplicado.face` é sempre um caminho
+   subótimo, não só quando é o inverso exato. Poda estritamente mais forte
+   que a atual (que só corta 1 dos 3 sentidos por face; essa corta os 3).
+2. **Faces opostas comutam, então só gerar uma ordem**: girar U depois D dá
+   o mesmo estado que D depois U, então explorar as duas ordens é trabalho
+   duplicado. Ele resolve isso descartando `mov.face == oposta(ultimaFace)`
+   quando `indice(mov.face) > indice(ultimaFace)` — mantém só uma ordem
+   canônica.
+- **Onde aplicar**: dá pra fazer já em `gerarFilhos` (mais simples, já temos
+  `atual->pai != nullptr`/`movimentoAplicado` ali) ou esperar a Fase 4/5 e
+  aplicar no `IDDFS` especificamente (é ele quem mais se beneficia, por
+  reexplorar o mesmo espaço em cada iteração de profundidade). Não é
+  obrigatório pro enunciado, é otimização de espaço de busca — decidir
+  depois se o tempo permitir, sem bloquear as fases seguintes.
