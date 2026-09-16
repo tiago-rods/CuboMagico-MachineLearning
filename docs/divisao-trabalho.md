@@ -79,3 +79,27 @@ checklist de `README.md` > Verificação. Prazo: 24/09/2026 ao meio-dia.
 3. **Dia 7**: testes finais, checklist de `docs/descricao-projeto.md`,
    preparar arguição.
 4. **Dia 8**: buffer/polimento.
+
+
+Parte D - Tiago
+Divisão
+- [ ] D.1 — Validar o ambiente antes de escrever qualquer render
+Ligar -DWITH_OPENGL=ON e confirmar que o CMake baixa/compila o freeglut nesta máquina, com uma janela GLUT vazia (só glutCreateWindow + glutMainLoop). Isso evita repetir a dor de cabeça do doctest (FetchContent quebrando por versão de política, path com espaço, etc.) — melhor descobrir isso agora, sem nenhuma lógica de cubo no meio.
+
+- [ ] D.2 — Câmera orbital + cena estática
+Camera.cpp: projeção em perspectiva (gluPerspective) + gluLookAt/glRotatef controlado por arraste do mouse (glutMotionFunc/glutMouseFunc), testado desenhando só 1 cubo parado no centro.
+
+- [ ] D.3 — Grade dos 8 cubies posicionados
+Fixar a convenção de coordenadas (decisão 1 acima) e desenhar os 8 glutSolidCube nas posições certas, ainda sem cor por sticker (cor única só pra confirmar que a grade 2x2x2 está certa visualmente).
+
+- [ ] D.4 — Colorir conforme EstadoCubo
+RenderCubie.cpp::desenharCubie: pra cada canto, ler os 3 índices de sticker (tabela do README), mapear Cor → RGB, e desenhar os 3 quadrados coloridos nas faces certas (decisão 2 acima). Dá pra testar visualmente com estadoResolvido() (deve aparecer com faces uniformes) e depois com um estado embaralhado manualmente.
+
+
+- [ ] D.5 — Entrada de comando via teclado
+glutKeyboardFunc acumulando caracteres num buffer até Enter, reaproveitando o parseMovimento que já existe em Movimento.cpp (mesmo parser do terminal — não reinventa).
+
+- [ ] D.6 — Integração
+FactoryVisualizador.cpp (hoje só tem // TODO, retorna nullptr) passa a instanciar VisualizadorOpenGL quando TipoView::OPENGL; VisualizadorOpenGL::lerComando usa a solução da decisão 3.
+
+- [ ] D.7 — Extra (Semana 4 do cronograma, não bloqueia nota): animar o giro da camada interpolando rotação em N frames antes de aplicar o movimento de verdade no EstadoCubo.
