@@ -233,7 +233,10 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
 
 - **Pronto**: `EstadoCubo`, `Movimento`, `Avaliadora` (`ehEstadoObjetivo` +
   `heuristicaCantos`), `Sucessora` completo (`aplicarMovimento` +
-  `sucessoraCubo`/`sucessoraComHeuristica`).
+  `sucessoraCubo`/`sucessoraComHeuristica`, com poda de busca reforçada:
+  nunca repete a face do último movimento e evita reordenar pares de faces
+  opostas — inspirada no solver de Sebastian Lague, ver
+  `docs/anotacoes.md`).
 - **Pendente**: as 3 `Frontier*`, `BuscaGenerica` (laço genérico —
   requisito crítico), `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`,
   `Controller`, `VisualizadorTerminal`. Todos ainda são stubs com `// TODO`.

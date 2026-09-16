@@ -1,6 +1,7 @@
 # Fontes
 https://github.com/SebLague/Rubiks-Cube
 https://www.youtube.com/watch?v=fy0HRViXZnE
+https://www.youtube.com/watch?v=Eysf6-E3ino
 
 # Anotações
 - Permitir seed
@@ -99,6 +100,31 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     typos de nome de função/tipo não aparecem revisando o código a olho tão
     rápido quanto compilando — compilar cedo (mesmo sem testes prontos pra
     aquele trecho) pega isso na hora.
+- `Sucessora.cpp::gerarFilhos`: trocada a poda antiga (só bloqueava o inverso
+  exato do último movimento) pelas duas podas do `GreedySolver` do Seb Lague
+  (ver seção "Inspiração externa" abaixo):
+  - Novo helper `faceOposta(Face)` no namespace anônimo, mapeando os 3 pares
+    (U/D, L/R, F/B).
+  - Poda 1: `if(temPai && face == faceDoUltimo) continue;` — corta a face
+    inteira do último movimento, não só o sentido inverso. Aplicada **antes**
+    do loop de `Sentido`, por isso bloqueia os 3 sentidos de uma vez.
+  - Poda 2: `if(temPai && face == faceOposta(faceDoUltimo) &&
+    static_cast<int>(face) > static_cast<int>(faceDoUltimo)) continue;` —
+    entre um par de faces opostas, só permite a ordem em que a face de menor
+    índice no enum (`Face { U, D, L, R, F, B }`) vem primeiro.
+  - `movimentoInverso` deixou de ser usado dentro de `gerarFilhos` (a poda 1
+    já cobre o caso do inverso exato, e cobre mais casos); a função continua
+    existindo e sendo usada pelos testes de `test_movimentos.cpp`.
+  - Efeito: nó não-raiz passa de até 17 filhos gerados (18 menos o inverso)
+    para até 13 (18 menos 1 face inteira de 3 movimentos, menos 1 dos 2
+    movimentos restantes do par de face oposta).
+  - Bugs pegos ao digitar (compilando): faltou `;` em `return filhos` e
+    faltou fechar o `namespace{` (a chave da linha do `gerarFilhos` fechava
+    só a função, não o namespace — sem a chave extra, `sucessoraCubo`/
+    `sucessoraComHeuristica` ficariam com *linkage* interno, invisíveis pra
+    outros `.cpp`). Rebuild depois do fix: `cubo_tests` compila limpo, 8
+    casos / 34 assertions continuam passando (nenhum teste atual cobre
+    `sucessoraCubo` diretamente, só `aplicarMovimento`).
 
 ## Decisões importantes (heurística e busca)
 
@@ -172,23 +198,16 @@ laço genérico compartilhado entre eles.
   `buscaGenerica` (-6 pts se não compartilharem). Não seguir esse padrão dele
   aqui é intencional, não descuido.
 
-**O que vale trazer pro nosso `gerarFilhos`/`Sucessora.cpp` (ou pra geração de
-filhos dentro de `BuscaGenerica`/`IDDFS` na Fase 4/5)** — duas podas de busca
-do `GreedySolver.Search`, mais fortes que a poda atual (só bloqueia o inverso
-exato do último movimento):
+**O que trouxemos pro nosso `gerarFilhos`/`Sucessora.cpp`** — duas podas de
+busca do `GreedySolver.Search`, mais fortes que a poda antiga (que só
+bloqueava o inverso exato do último movimento). **Implementadas em
+16-09-2026**, ver detalhes em "Progresso":
 1. **Nunca girar a mesma face duas vezes seguidas**: dois giros consecutivos
    na mesma face sempre se reduzem a um giro só (ou à identidade) — então
    gerar `mov.face == atual->movimentoAplicado.face` é sempre um caminho
    subótimo, não só quando é o inverso exato. Poda estritamente mais forte
-   que a atual (que só corta 1 dos 3 sentidos por face; essa corta os 3).
-2. **Faces opostas comutam, então só gerar uma ordem**: girar U depois D dá
+   que a antiga (que só cortava 1 dos 3 sentidos por face; essa corta os 3).
+2. **Faces opostas comutam, então só gera uma ordem**: girar U depois D dá
    o mesmo estado que D depois U, então explorar as duas ordens é trabalho
-   duplicado. Ele resolve isso descartando `mov.face == oposta(ultimaFace)`
-   quando `indice(mov.face) > indice(ultimaFace)` — mantém só uma ordem
-   canônica.
-- **Onde aplicar**: dá pra fazer já em `gerarFilhos` (mais simples, já temos
-  `atual->pai != nullptr`/`movimentoAplicado` ali) ou esperar a Fase 4/5 e
-  aplicar no `IDDFS` especificamente (é ele quem mais se beneficia, por
-  reexplorar o mesmo espaço em cada iteração de profundidade). Não é
-  obrigatório pro enunciado, é otimização de espaço de busca — decidir
-  depois se o tempo permitir, sem bloquear as fases seguintes.
+   duplicado. Resolvido descartando `mov.face == oposta(ultimaFace)` quando
+   `indice(mov.face) > indice(ultimaFace)` — mantém só uma ordem canônica.
