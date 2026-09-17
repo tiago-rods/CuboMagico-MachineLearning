@@ -70,19 +70,19 @@ void desenharCubie(int indiceCanto, const EstadoCubo& estado) {
 glEnd();
 
 // Face F/B (plano z = sinalZ * (meiaAresta+eps))
-    corParaRGB(estado.stickers[indiceUD], r, g, b);
+    corParaRGB(estado.stickers[indiceFB], r, g, b);
     glColor3f(r,g,b);
     float z = sinalZ * (meiaAresta + eps);
     glBegin(GL_QUADS);
     glVertex3f(-raio, -raio, z);
     glVertex3f( raio, -raio, z);
     glVertex3f( raio,  raio, z);
-    glVertex3f( raio, -raio, z);
+    glVertex3f( -raio, raio, z);
 
 glEnd();
 
     // Face L/R (plano x = sinalX * (meiaAresta + eps))
-    corParaRGB(estado.stickers[indiceUD], r, g, b);
+    corParaRGB(estado.stickers[indiceLR], r, g, b);
     glColor3f(r,g,b);
     float x = sinalX * (meiaAresta + eps);
     glBegin(GL_QUADS);
