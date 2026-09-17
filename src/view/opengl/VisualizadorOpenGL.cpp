@@ -135,7 +135,47 @@ void VisualizadorOpenGL::desenharCena(){
         desenharCubie(i, estadoAtual_);
         glPopMatrix();
     }
+
+    desenharAjuda();
     glutSwapBuffers();
+}
+
+void VisualizadorOpenGL::desenharTexto(float x, float y, const std::string& texto) {
+    glRasterPos2f(x, y);
+    for (char c : texto) {
+        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, c);
+    }
+}
+
+void VisualizadorOpenGL::desenharAjuda() {
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    int largura = viewport[2];
+    int altura = viewport[3];
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, largura, 0, altura);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+    desenharTexto(10, altura - 20, "Movimentos: U D L R F B (sentido horario)");
+    desenharTexto(10, altura - 40, "Adicione ' para anti-horario, ex: U'");
+    desenharTexto(10, altura - 60, "Adicione 2 para giro duplo, ex: U2");
+    desenharTexto(10, altura - 80, "Digite e aperte Enter para aplicar");
+    desenharTexto(10, 20, "Comando: " + bufferComando_);
+
+    glEnable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
 }
 
 void VisualizadorOpenGL::callbackDesenhar() {
@@ -175,6 +215,8 @@ void VisualizadorOpenGL::callbackTeclado(unsigned char tecla, int x, int y){
 
     if(tecla == '\r' || tecla == '\n') instancia_->processarBuffer();
     else instancia_->bufferComando_ += static_cast<char>(tecla);
+
+    glutPostRedisplay();
 }
 
 void VisualizadorOpenGL::processarBuffer(){

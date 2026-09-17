@@ -12,6 +12,8 @@ public:
 private: 
     void inicializarJanela();
     void desenharCena();
+    void desenharAjuda();
+    void desenharTexto(float x, float y, const std::string& texto);
     void processarBuffer();
 
     void animarMovimento(const Movimento& mov);
