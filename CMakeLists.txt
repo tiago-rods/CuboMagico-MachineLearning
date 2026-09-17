@@ -36,6 +36,7 @@ add_executable(cubo_magico
 target_link_libraries(cubo_magico PRIVATE cubo_core cubo_view_terminal)
 
 if(WITH_OPENGL)
+    find_package(OpenGL REQUIRED)
     include(FetchContent)
     FetchContent_Declare(
         freeglut
@@ -51,9 +52,13 @@ if(WITH_OPENGL)
         src/view/opengl/Camera.cpp
         src/view/opengl/RenderCubie.cpp
     )
-    target_link_libraries(cubo_view_opengl PUBLIC cubo_core freeglut)
+    target_link_libraries(cubo_view_opengl PUBLIC cubo_core freeglut OpenGL::GLU OpenGL::GL)
+    target_include_directories(cubo_view_opengl PUBLIC ${freeglut_SOURCE_DIR}/include)
     target_link_libraries(cubo_magico PRIVATE cubo_view_opengl)
     target_compile_definitions(cubo_magico PRIVATE COM_OPENGL)
+
+    add_executable(cubo_opengl_preview src/view/opengl/PreviewMain.cpp)
+    target_link_libraries(cubo_opengl_preview PRIVATE cubo_view_opengl)
 endif()
 
 enable_testing()

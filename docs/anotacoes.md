@@ -5,6 +5,7 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
 
 # Anotações
 - Permitir seed
+- Fazer função de embaralhamento aleatório do cubo
 
 ## Próximos passos (TODO)
 - As 3 `Frontier*` (`FrontierFila`, `FrontierPilha`, `FrontierPrioridade`) —
@@ -125,6 +126,87 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     outros `.cpp`). Rebuild depois do fix: `cubo_tests` compila limpo, 8
     casos / 34 assertions continuam passando (nenhum teste atual cobre
     `sucessoraCubo` diretamente, só `aplicarMovimento`).
+
+### 17-09-2026 — Parte D (OpenGL), D.1 a D.4
+- `CMakeLists.txt`: `WITH_OPENGL` + `FetchContent(freeglut)` já validados
+  (D.1) — janela GLUT vazia abre certo, sem os problemas de FetchContent que
+  o doctest deu. `PreviewMain.cpp` criado como executável temporário só pra
+  isso (não entra no `cubo_magico` final).
+- `Camera.cpp` (D.2): órbita com `gluLookAt` + arraste de mouse
+  (`glutMouseFunc`/`glutMotionFunc`). Dois bugs pegos e corrigidos:
+  - `arrastar`: o `std::clamp` do ângulo vertical estava sendo somado de
+    volta (`anguloVertical_ += clamp(...)`) em vez de atribuído
+    (`anguloVertical_ = clamp(...)`) — o ângulo vazava do range [-89,89] em
+    vez de travar nele.
+  - `zoom`: `std::clamp(distancia_ + delta, 3.0f, 2.0f)` tinha mínimo (3)
+    maior que máximo (2) — UB. Corrigido pra `(3.0f, 12.0f)`.
+- **Decisão de convenção de eixos** (D.3): `U`→`+y`, `D`→`-y`, `F`→`+z`,
+  `B`→`-z`, `L`→`-x`, `R`→`+x`. Os 8 cantos ficam num array
+  `posicoesCantos[8][3]` em `VisualizadorOpenGL.cpp`, na mesma ordem da
+  tabela de cantos do README (`ULF, URF, DLF, DRF, ULB, URB, DLB, DRB`), com
+  espaçamento de `0.52f` e cubie de tamanho `0.98f` (sobra folga visual tipo
+  cubo mágico de verdade). `desenharCena()` faz um loop de 8 iterações
+  (`glPushMatrix`/`glTranslatef`/`glPopMatrix`) chamando `desenharCubie`.
+- **D.4** (`RenderCubie.cpp::desenharCubie`): duas tabelas locais no
+  namespace anônimo — `stickersPorCanto[8][3]` (índices U/D, F/B, L/R por
+  canto, copiados da tabela de cantos do README) e `sinaisPorCanto[8][3]`
+  (mesmos sinais de `posicoesCantos`, precisa ficar em sincronia se um dos
+  dois mudar). Corpo do cubie desenhado numa cor neutra (`glutSolidCube`) e
+  os 3 stickers como `GL_QUADS` deslocados por um `eps` da superfície
+  (evita z-fighting). Três bugs pegos só testando visualmente com
+  `estadoResolvido()`:
+  - Face F/B e face L/R estavam lendo `estado.stickers[indiceUD]` (copy-paste
+    do índice errado) em vez de `indiceFB`/`indiceLR` — todas as 3 faces
+    saíam com a cor do sticker U/D.
+  - Quad da face F/B tinha o 4º vértice duplicado do 2º
+    (`glVertex3f(raio, -raio, z)` repetido) em vez de `(-raio, raio, z)` —
+    ficava degenerado (só 3 pontos), face não fechava certo.
+  Depois do fix, `estadoResolvido()` mostra as 6 faces do cubo grande
+  uniformes, confirmando D.3+D.4.
+- **D.5** (`VisualizadorOpenGL::lerComando`): `glutKeyboardFunc` registrado
+  em `inicializarJanela()`, callback `callbackTeclado` acumula caracteres em
+  `bufferComando_` até `\r`/`\n`, aí chama `processarBuffer()` que tenta
+  `parseMovimento(bufferComando_)` (reaproveitado de `Movimento.cpp`, sem
+  reinventar parser); erro de parse (`std::invalid_argument`) vira
+  `Comando{TipoComando::INVALIDO, ..., bufferComando_}` em vez de propagar a
+  exceção. `lerComando()` fica chamando `glutMainLoopEvent()` em loop até a
+  flag `comandoPronto_` virar `true` (mesmo padrão de espera ativa que
+  `renderizar()` já usa) e devolve `comandoLido_`.
+  Bug pego na revisão (ainda não testado em build): sobrou a definição
+  antiga de `lerComando()` (o stub `// TODO (D.5)` que retornava
+  `Comando{}`) no mesmo `.cpp` junto com a nova — duplicata que quebra a
+  compilação por redefinição de função; precisa remover o stub antigo antes
+  de compilar.
+- **D.6** (`FactoryVisualizador.cpp`) — pontos de atenção levantados antes de
+  implementar:
+  - `VisualizadorOpenGL.cpp`/`Camera.cpp`/`RenderCubie.cpp` só são
+    compilados na lib `cubo_view_opengl`, que só existe dentro do
+    `if(WITH_OPENGL)` do `CMakeLists.txt` (linhas 38-62); o executável
+    `cubo_magico` só linka essa lib e só recebe a macro `COM_OPENGL` quando
+    `WITH_OPENGL=ON` (linhas 57-58).
+  - Por isso `FactoryVisualizador.cpp` não pode incluir
+    `VisualizadorOpenGL.hpp`/instanciar a classe incondicionalmente — sem
+    `WITH_OPENGL=ON` (que é o padrão, a flag é `OFF`) dá erro de link
+    (símbolos de `VisualizadorOpenGL` não existem nesse build).
+  - Solução: `#ifdef COM_OPENGL` em volta do `#include` do header e em volta
+    do `case TipoView::OPENGL: return std::make_unique<VisualizadorOpenGL>();`.
+    Sem a macro definida, o `case` cai num fallback (`return nullptr`).
+  - **Pendência pra quem for integrar (Controller)**: `criarVisualizador(TipoView::OPENGL)`
+    pode devolver `nullptr` num build sem OpenGL — precisa checar antes de
+    usar, ou decidir travar com mensagem de erro. Decisão de integração,
+    fica fora do escopo estrito do D.6.
+  - `VisualizadorTerminal` não precisa de guarda — é sempre compilado,
+    independente de `WITH_OPENGL`.
+- **D.6 implementado**: `FactoryVisualizador.cpp` monta o `switch(tipo)` com
+  `#ifdef COM_OPENGL` em volta do `#include` e do `case TipoView::OPENGL`,
+  fallback `nullptr` sem a flag, exatamente como os pontos de atenção acima
+  previam. `TipoView::TERMINAL` já instancia `VisualizadorTerminal` (sem
+  guarda, sempre compilado).
+- Com D.6, os itens obrigatórios do checklist da Parte D (D.1 a D.6) estão
+  todos feitos. Falta só o **D.7 (extra, não bloqueia nota)**: animar o giro
+  da camada interpolando rotação em N frames antes de aplicar o movimento
+  real no `EstadoCubo` — fica pra depois da integração/testes finais
+  (Semana 4 do cronograma).
 
 ## Decisões importantes (heurística e busca)
 
