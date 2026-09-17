@@ -1,10 +1,71 @@
 #include "view/opengl/VisualizadorOpenGL.hpp"
 #include <GL/freeglut.h>
 #include <stdexcept>
+#include <thread>
+#include <chrono>
 #include "cubo/Movimento.hpp"
 #include "RenderCubie.hpp"
 
+namespace {
+    // Mesma ordem de cantos de sempre: ULF=0, URF=1, DLF=2, DRF=3, ULB=4,
+    // URB=5, DLB=6, DRB=7. Cada face toca 4 dos 8 cantos.
+    constexpr int cantosPorFace[6][4] = {
+    {0, 1, 4, 5}, // U
+    {2, 3, 6, 7}, // D
+    {0, 2, 4, 6}, // L
+    {1, 3, 5, 7}, // R
+    {0, 1, 2, 3}, // F
+    {4, 5, 6, 7}, // B
+    };
+
+    // Eixo de rotacao de cada face (mesma convencao de sinais de D.3).
+    constexpr float eixoPorFace[6][3] = {
+    { 0.0f, +1.0f,  0.0f}, // U
+    { 0.0f, -1.0f,  0.0f}, // D
+    {-1.0f,  0.0f,  0.0f}, // L
+    {+1.0f,  0.0f,  0.0f}, // R
+    { 0.0f,  0.0f, +1.0f}, // F
+    { 0.0f,  0.0f, -1.0f}, // B
+    };
+
+    float anguloPorSentido(Sentido sentido) {
+        switch(sentido){
+            case Sentido::HORARIO:      return -90.0f;
+            case Sentido::ANTI_HORARIO: return +90.0f;
+            case Sentido::DUPLO:        return +180.0f;
+        }
+        return 0.0f;
+    }
+}
+
+
 VisualizadorOpenGL* VisualizadorOpenGL::instancia_ = nullptr;
+
+bool VisualizadorOpenGL::cantoNaFace(int indiceCanto, Face face) const {
+    const int* cantos = cantosPorFace[static_cast<int>(face)];
+    for(int i = 0; i < 4; ++i){
+        if (cantos[i] == indiceCanto) return true;
+    }
+    return false;
+}
+
+
+void VisualizadorOpenGL::animarMovimento(const Movimento& mov) {
+    const int totalFrames = 24;
+    const float anguloFinal = anguloPorSentido(mov.sentido);
+
+    animando_ = true;
+    faceAnimando_ = mov.face;
+
+    for(int frame = 1; frame <= totalFrames; ++frame){
+        anguloAnimacao_ = anguloFinal * frame / static_cast<float>(totalFrames);
+        glutPostRedisplay();
+        glutMainLoopEvent();
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); //(+- 60 fps)
+    }
+    animando_ = false;
+    anguloAnimacao_ = 0.0f;
+}
 
 void VisualizadorOpenGL::inicializarJanela(){
     // depois anotar o que cada coisa faz
@@ -56,6 +117,10 @@ void VisualizadorOpenGL::desenharCena(){
 
     for(int i = 0; i < 8; ++i){
         glPushMatrix();
+        if(animando_ && cantoNaFace(i, faceAnimando_)){
+            const float* eixo = eixoPorFace[static_cast<int>(faceAnimando_)];
+            glRotatef(anguloAnimacao_, eixo[0], eixo[1], eixo[2]);
+        }
         glTranslatef(posicoesCantos[i][0] * espacamento,
                      posicoesCantos[i][1] * espacamento,
                      posicoesCantos[i][2] * espacamento);
@@ -127,11 +192,6 @@ void VisualizadorOpenGL::renderizar(const EstadoCubo& estado) {
 
     glutPostRedisplay();
     glutMainLoopEvent();
-}
-
-Comando VisualizadorOpenGL::lerComando() {
-    // TODO (D.5)
-    return Comando{};
 }
 
 void VisualizadorOpenGL::mostrarMensagem(const std::string& mensagem) {

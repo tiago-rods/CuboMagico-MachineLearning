@@ -2,6 +2,7 @@
 
 #include "view/IVisualizador.hpp"
 #include "view/opengl/Camera.hpp"
+
 class VisualizadorOpenGL : public IVisualizador {
 public:
     void renderizar(const EstadoCubo& estado) override;
@@ -12,6 +13,9 @@ private:
     void inicializarJanela();
     void desenharCena();
     void processarBuffer();
+
+    void animarMovimento(const Movimento& mov);
+    bool cantoNaFace(int indiceCanto, Face face) const;
 
     static void callbackDesenhar();
     static void callbackMouseClick(int botao, int estado, int x, int y);
@@ -28,6 +32,10 @@ private:
     std::string bufferComando_;
     bool comandoPronto_ = false;
     Comando comandoLido_; 
+
+    bool animando_ = false;
+    Face faceAnimando_ = Face::U;
+    float anguloAnimacao_ = 0.0f;
 
     static VisualizadorOpenGL* instancia_; // erro nessa linah ver o motivo
 };
