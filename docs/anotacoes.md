@@ -5,6 +5,7 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
 
 # Anotações
 - Permitir seed
+- Fazer função de embaralhamento aleatório do cubo
 
 ## Próximos passos (TODO)
 - As 3 `Frontier*` (`FrontierFila`, `FrontierPilha`, `FrontierPrioridade`) —

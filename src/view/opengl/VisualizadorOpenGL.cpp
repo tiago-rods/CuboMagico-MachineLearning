@@ -1,5 +1,6 @@
 #include "view/opengl/VisualizadorOpenGL.hpp"
 #include <GL/freeglut.h>
+#include "RenderCubie.hpp"
 
 VisualizadorOpenGL* VisualizadorOpenGL::instancia_ = nullptr;
 
@@ -33,9 +34,31 @@ void VisualizadorOpenGL::desenharCena(){
 
     camera_.aplicar();
 
-    // TODO (D.3/D.4): trocar por 8 cubies posicionados/coloridos conforme estadoAtual_.
-    glutSolidCube(1.0);
+    //Convençao de eixos: U=y, D=-y, F=z, B=-z, R=x, L=-x
+    //Ordem dos igual a numeração dos stickers
+    // ULF, URF, DLF, DRF, ULB, URB, DLB, DRB
 
+    static const float posicoesCantos[8][3] = {
+        {-1.0f, +1.0f, +1.0f}, // ULF
+        {+1.0f, +1.0f, +1.0f}, // URF
+        {-1.0f, -1.0f, +1.0f}, // DLF
+        {+1.0f, -1.0f, +1.0f}, // DRF
+        {-1.0f, +1.0f, -1.0f}, // ULB
+        {+1.0f, +1.0f, -1.0f}, // URB
+        {-1.0f, -1.0f, -1.0f}, // DLB
+        {+1.0f, -1.0f, -1.0f}, // DRB
+    };
+    const float espacamento = 0.52f;
+    const float tamanhoCubie = 0.98f;
+
+    for(int i = 0; i < 8; ++i){
+        glPushMatrix();
+        glTranslatef(posicoesCantos[i][0] * espacamento,
+                     posicoesCantos[i][1] * espacamento,
+                     posicoesCantos[i][2] * espacamento);
+        desenharCubie(i, estadoAtual_);
+        glPopMatrix();
+    }
     glutSwapBuffers();
 }
 
