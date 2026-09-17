@@ -23,6 +23,18 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
 - Permitir seed no embaralhar (item já citado no topo) — decidir se vira uma
   função livre tipo `embaralhar(int nMovimentos, unsigned seed)`, reusável
   tanto pelo `Controller::tratarEmbaralhar` quanto por `test_busca.cpp`.
+- **LEMBRETE DE INTEGRAÇÃO**: quando `Controller`/`VisualizadorTerminal`
+  (Pessoas B/C) estiverem prontos, precisa existir uma **tela inicial**
+  pedindo pro usuário escolher o modo de resolução antes de começar
+  (Manual / BFS / IDDFS / A*) — hoje nem `VisualizadorOpenGL` nem
+  `VisualizadorTerminal` têm esse menu, e `Controller::executar()` ainda é
+  só `// TODO`. Isso é requisito obrigatório do enunciado ("usuário deve ter
+  a opção de jogar ou escolher qual das IAs solucionará o problema" —
+  `docs/descricao-projeto.md`), não só um extra de UX.
+- Copiar as DLLs de runtime pro lado do `.exe` (ver nota no `README.md` >
+  "Como rodar o preview do OpenGL") deveria virar um passo automático do
+  CMake (`add_custom_command(TARGET ... POST_BUILD ...)`) antes da entrega
+  final, pra não depender de alguém lembrar de copiar na mão.
 
 ## Progresso
 
@@ -207,6 +219,55 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
   da camada interpolando rotação em N frames antes de aplicar o movimento
   real no `EstadoCubo` — fica pra depois da integração/testes finais
   (Semana 4 do cronograma).
+- **D.7 implementado**: `animarMovimento(Movimento)` em `VisualizadorOpenGL`,
+  chamado de dentro de `processarBuffer()` assim que `parseMovimento` tem
+  sucesso (antes de marcar o comando como pronto). Duas tabelas novas no
+  namespace anônimo de `VisualizadorOpenGL.cpp`: `cantosPorFace[6][4]`
+  (quais dos 8 cantos pertencem a cada face) e `eixoPorFace[6][3]` (eixo de
+  rotação de cada face, mesma convenção de sinais do D.3). `desenharCena()`
+  aplica um `glRotatef` extra (antes do `glTranslatef`, pra girar em torno
+  da origem do cubo e não do canto) só nos 4 cantos da face em animação.
+  24 frames, ~16ms de espera cada (`std::this_thread::sleep_for`) — dá uns
+  384ms de animação por giro.
+- Testado com `PreviewMain.cpp` adaptado pra chamar `lerComando()` em loop e
+  aplicar `aplicarMovimento` de verdade depois da animação — build local
+  travou 2x por causas fora do código:
+  1. Antivírus (Avast) do ambiente de teste, resolvido com exceção de pasta
+     pro projeto e pro `C:\msys64`.
+  2. **DLLs de runtime ausentes** (`libfreeglut.dll`,
+     `libstdc++-6.dll`/`libgcc_s_seh-1.dll`/`libwinpthread-1.dll`) — o
+     `.exe` compilava mas fechava sozinho na hora de abrir (exit code
+     `0xC0000135`, `STATUS_DLL_NOT_FOUND`). Nenhuma delas fica do lado do
+     `.exe` automaticamente; precisam ser copiadas manualmente ou
+     adicionadas via `PATH`. Isso é uma pendência real pra quando o
+     `cubo_magico` final for gerado — sem alguma automação (`POST_BUILD`
+     no CMake), quem baixar o repo do zero vai bater na mesma trava.
+- **Polimento de UX depois do primeiro teste visual bem-sucedido**:
+  - `Camera::arrastar`: sinal do delta invertido (`+=`/`+` → `-=`/`-`) —
+    arraste do mouse estava girando a câmera no sentido contrário do
+    esperado.
+  - `SetProcessDPIAware()` (Windows, `#ifdef _WIN32`) chamado no início de
+    `inicializarJanela()` — sem isso o Windows fazia bitmap-scaling do
+    framebuffer do GLUT em monitores com escala de DPI > 100%, deixando a
+    imagem borrada mesmo com a janela em tamanho normal.
+  - Zoom nunca estava ligado a nenhum input: `Camera::zoom()` existia desde
+    o D.2 mas nada chamava. Adicionado `callbackMouseRoda` +
+    `glutMouseWheelFunc` pra ligar o scroll do mouse a ele.
+  - Cor do plástico do cubie (`RenderCubie.cpp`) ajustada em duas rodadas de
+    feedback: de quase-preto (`0.05`) pra cinza médio (`0.3`) pra melhorar a
+    legibilidade, depois pra cinza escuro (`0.15`) — meio termo entre as
+    duas primeiras tentativas.
+  - Gap entre cubies reduzido: `meiaAresta` (tamanho do cubie) subiu de
+    `0.49` pra `0.515`, quase igual ao `espacamento` de `0.52` em
+    `VisualizadorOpenGL.cpp` — sobra só um fiapo pra evitar z-fighting nas
+    quinas em vez do gap visível de antes.
+  - Texto de ajuda 2D sobreposto à cena (`desenharAjuda`/`desenharTexto`,
+    `glutBitmapCharacter` + `gluOrtho2D` sobre viewport lido via
+    `glGetIntegerv(GL_VIEWPORT, ...)`, não hardcoded, pra sobreviver a
+    resize): explica a sintaxe de movimento (`U`/`D`/`L`/`R`/`F`/`B`,
+    `'` = anti-horário, `2` = duplo) e ecoa o buffer sendo digitado em
+    tempo real (por isso `callbackTeclado` ganhou um `glutPostRedisplay()`
+    a cada tecla, não só no Enter).
 
 ## Decisões importantes (heurística e busca)
 

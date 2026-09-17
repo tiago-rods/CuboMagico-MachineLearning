@@ -102,4 +102,6 @@ glutKeyboardFunc acumulando caracteres num buffer até Enter, reaproveitando o p
 - [x] D.6 — Integração
 FactoryVisualizador.cpp (hoje só tem // TODO, retorna nullptr) passa a instanciar VisualizadorOpenGL quando TipoView::OPENGL; VisualizadorOpenGL::lerComando usa a solução da decisão 3.
 
-- [ ] D.7 — Extra (Semana 4 do cronograma, não bloqueia nota): animar o giro da camada interpolando rotação em N frames antes de aplicar o movimento de verdade no EstadoCubo.
+- [x] D.7 — Extra (Semana 4 do cronograma, não bloqueia nota): animar o giro da camada interpolando rotação em N frames antes de aplicar o movimento de verdade no EstadoCubo.
+
+**Parte D concluída (17/09/2026)**, incluindo o extra D.7 e uma rodada de polimento de UX (câmera, zoom, cores, HUD de ajuda) — detalhes em `docs/anotacoes.md`. Falta só a integração final com `Controller`/`VisualizadorTerminal` quando as Pessoas A/B/C terminarem — ver lembrete sobre a tela inicial de escolha de modo (Manual/BFS/IDDFS/A*) em `docs/anotacoes.md` > "Próximos passos (TODO)".
