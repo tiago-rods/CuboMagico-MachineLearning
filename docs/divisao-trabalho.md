@@ -96,10 +96,10 @@ Fixar a convenção de coordenadas (decisão 1 acima) e desenhar os 8 glutSolidC
 RenderCubie.cpp::desenharCubie: pra cada canto, ler os 3 índices de sticker (tabela do README), mapear Cor → RGB, e desenhar os 3 quadrados coloridos nas faces certas (decisão 2 acima). Dá pra testar visualmente com estadoResolvido() (deve aparecer com faces uniformes) e depois com um estado embaralhado manualmente.
 
 
-- [ ] D.5 — Entrada de comando via teclado
+- [x] D.5 — Entrada de comando via teclado
 glutKeyboardFunc acumulando caracteres num buffer até Enter, reaproveitando o parseMovimento que já existe em Movimento.cpp (mesmo parser do terminal — não reinventa).
 
-- [ ] D.6 — Integração
+- [x] D.6 — Integração
 FactoryVisualizador.cpp (hoje só tem // TODO, retorna nullptr) passa a instanciar VisualizadorOpenGL quando TipoView::OPENGL; VisualizadorOpenGL::lerComando usa a solução da decisão 3.
 
 - [ ] D.7 — Extra (Semana 4 do cronograma, não bloqueia nota): animar o giro da camada interpolando rotação em N frames antes de aplicar o movimento de verdade no EstadoCubo.

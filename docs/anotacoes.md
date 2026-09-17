@@ -163,8 +163,42 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     ficava degenerado (só 3 pontos), face não fechava certo.
   Depois do fix, `estadoResolvido()` mostra as 6 faces do cubo grande
   uniformes, confirmando D.3+D.4.
-- Próximo: D.5 (entrada de comando via teclado, `glutKeyboardFunc` +
-  `parseMovimento` de `Movimento.cpp`).
+- **D.5** (`VisualizadorOpenGL::lerComando`): `glutKeyboardFunc` registrado
+  em `inicializarJanela()`, callback `callbackTeclado` acumula caracteres em
+  `bufferComando_` até `\r`/`\n`, aí chama `processarBuffer()` que tenta
+  `parseMovimento(bufferComando_)` (reaproveitado de `Movimento.cpp`, sem
+  reinventar parser); erro de parse (`std::invalid_argument`) vira
+  `Comando{TipoComando::INVALIDO, ..., bufferComando_}` em vez de propagar a
+  exceção. `lerComando()` fica chamando `glutMainLoopEvent()` em loop até a
+  flag `comandoPronto_` virar `true` (mesmo padrão de espera ativa que
+  `renderizar()` já usa) e devolve `comandoLido_`.
+  Bug pego na revisão (ainda não testado em build): sobrou a definição
+  antiga de `lerComando()` (o stub `// TODO (D.5)` que retornava
+  `Comando{}`) no mesmo `.cpp` junto com a nova — duplicata que quebra a
+  compilação por redefinição de função; precisa remover o stub antigo antes
+  de compilar.
+- **D.6** (`FactoryVisualizador.cpp`) — pontos de atenção levantados antes de
+  implementar:
+  - `VisualizadorOpenGL.cpp`/`Camera.cpp`/`RenderCubie.cpp` só são
+    compilados na lib `cubo_view_opengl`, que só existe dentro do
+    `if(WITH_OPENGL)` do `CMakeLists.txt` (linhas 38-62); o executável
+    `cubo_magico` só linka essa lib e só recebe a macro `COM_OPENGL` quando
+    `WITH_OPENGL=ON` (linhas 57-58).
+  - Por isso `FactoryVisualizador.cpp` não pode incluir
+    `VisualizadorOpenGL.hpp`/instanciar a classe incondicionalmente — sem
+    `WITH_OPENGL=ON` (que é o padrão, a flag é `OFF`) dá erro de link
+    (símbolos de `VisualizadorOpenGL` não existem nesse build).
+  - Solução: `#ifdef COM_OPENGL` em volta do `#include` do header e em volta
+    do `case TipoView::OPENGL: return std::make_unique<VisualizadorOpenGL>();`.
+    Sem a macro definida, o `case` cai num fallback (`return nullptr`).
+  - **Pendência pra quem for integrar (Controller)**: `criarVisualizador(TipoView::OPENGL)`
+    pode devolver `nullptr` num build sem OpenGL — precisa checar antes de
+    usar, ou decidir travar com mensagem de erro. Decisão de integração,
+    fica fora do escopo estrito do D.6.
+  - `VisualizadorTerminal` não precisa de guarda — é sempre compilado,
+    independente de `WITH_OPENGL`.
+- Próximo: D.6 (integração — `FactoryVisualizador.cpp` passa a instanciar
+  `VisualizadorOpenGL` quando `TipoView::OPENGL`).
 
 ## Decisões importantes (heurística e busca)
 
