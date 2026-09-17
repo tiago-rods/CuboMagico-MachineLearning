@@ -1,5 +1,7 @@
 #include "view/opengl/VisualizadorOpenGL.hpp"
 #include <GL/freeglut.h>
+#include <stdexcept>
+#include "cubo/Movimento.hpp"
 #include "RenderCubie.hpp"
 
 VisualizadorOpenGL* VisualizadorOpenGL::instancia_ = nullptr;
@@ -24,6 +26,7 @@ void VisualizadorOpenGL::inicializarJanela(){
     glutDisplayFunc(callbackDesenhar);
     glutMouseFunc(callbackMouseClick);
     glutMotionFunc(callbackMouseArrasto);
+    glutKeyboardFunc(callbackTeclado);
 
     janelaCriada_ = true;
 }
@@ -84,6 +87,37 @@ void VisualizadorOpenGL::callbackMouseArrasto(int x, int y) {
     instancia_->mouseY_ = y;
 
     glutPostRedisplay();
+}
+
+void VisualizadorOpenGL::callbackTeclado(unsigned char tecla, int x, int y){
+    if(!instancia_) return;
+
+    if(tecla == '\r' || tecla == '\n') instancia_->processarBuffer();
+    else instancia_->bufferComando_ += static_cast<char>(tecla);
+}
+
+void VisualizadorOpenGL::processarBuffer(){
+    try{
+        Movimento movimento = parseMovimento(bufferComando_);
+        comandoLido_.tipo = TipoComando::MOVIMENTO;
+        comandoLido_.movimento = movimento;
+    } catch(const std::invalid_argument&){
+        comandoLido_.tipo = TipoComando::INVALIDO;
+        comandoLido_.argumento = bufferComando_;
+    }
+
+    bufferComando_.clear();
+    comandoPronto_ = true;
+}
+
+Comando VisualizadorOpenGL::lerComando(){
+    comandoPronto_ = false;
+
+    while(!comandoPronto_){
+        glutMainLoopEvent();
+    }
+
+    return comandoLido_;
 }
 
 void VisualizadorOpenGL::renderizar(const EstadoCubo& estado) {

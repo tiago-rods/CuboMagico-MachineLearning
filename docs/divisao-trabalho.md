@@ -83,16 +83,16 @@ checklist de `README.md` > Verificação. Prazo: 24/09/2026 ao meio-dia.
 
 Parte D - Tiago
 Divisão
-- [ ] D.1 — Validar o ambiente antes de escrever qualquer render
+- [x] D.1 — Validar o ambiente antes de escrever qualquer render
 Ligar -DWITH_OPENGL=ON e confirmar que o CMake baixa/compila o freeglut nesta máquina, com uma janela GLUT vazia (só glutCreateWindow + glutMainLoop). Isso evita repetir a dor de cabeça do doctest (FetchContent quebrando por versão de política, path com espaço, etc.) — melhor descobrir isso agora, sem nenhuma lógica de cubo no meio.
 
-- [ ] D.2 — Câmera orbital + cena estática
+- [x] D.2 — Câmera orbital + cena estática
 Camera.cpp: projeção em perspectiva (gluPerspective) + gluLookAt/glRotatef controlado por arraste do mouse (glutMotionFunc/glutMouseFunc), testado desenhando só 1 cubo parado no centro.
 
-- [ ] D.3 — Grade dos 8 cubies posicionados
+- [x] D.3 — Grade dos 8 cubies posicionados
 Fixar a convenção de coordenadas (decisão 1 acima) e desenhar os 8 glutSolidCube nas posições certas, ainda sem cor por sticker (cor única só pra confirmar que a grade 2x2x2 está certa visualmente).
 
-- [ ] D.4 — Colorir conforme EstadoCubo
+- [x] D.4 — Colorir conforme EstadoCubo
 RenderCubie.cpp::desenharCubie: pra cada canto, ler os 3 índices de sticker (tabela do README), mapear Cor → RGB, e desenhar os 3 quadrados coloridos nas faces certas (decisão 2 acima). Dá pra testar visualmente com estadoResolvido() (deve aparecer com faces uniformes) e depois com um estado embaralhado manualmente.
 
 
