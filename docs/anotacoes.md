@@ -197,8 +197,16 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     fica fora do escopo estrito do D.6.
   - `VisualizadorTerminal` não precisa de guarda — é sempre compilado,
     independente de `WITH_OPENGL`.
-- Próximo: D.6 (integração — `FactoryVisualizador.cpp` passa a instanciar
-  `VisualizadorOpenGL` quando `TipoView::OPENGL`).
+- **D.6 implementado**: `FactoryVisualizador.cpp` monta o `switch(tipo)` com
+  `#ifdef COM_OPENGL` em volta do `#include` e do `case TipoView::OPENGL`,
+  fallback `nullptr` sem a flag, exatamente como os pontos de atenção acima
+  previam. `TipoView::TERMINAL` já instancia `VisualizadorTerminal` (sem
+  guarda, sempre compilado).
+- Com D.6, os itens obrigatórios do checklist da Parte D (D.1 a D.6) estão
+  todos feitos. Falta só o **D.7 (extra, não bloqueia nota)**: animar o giro
+  da camada interpolando rotação em N frames antes de aplicar o movimento
+  real no `EstadoCubo` — fica pra depois da integração/testes finais
+  (Semana 4 do cronograma).
 
 ## Decisões importantes (heurística e busca)
 
