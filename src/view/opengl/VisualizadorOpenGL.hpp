@@ -20,6 +20,7 @@ private:
     static void callbackDesenhar();
     static void callbackMouseClick(int botao, int estado, int x, int y);
     static void callbackMouseArrasto(int x, int y);
+    static void callbackMouseRoda(int roda, int direcao, int x, int y);
     static void callbackTeclado(unsigned char tecla, int x, int y);
 
     Camera camera_;

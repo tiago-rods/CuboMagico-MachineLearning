@@ -22,8 +22,8 @@ void Camera::aplicar() const {
 }
 
 void Camera::arrastar(int deltaX, int deltaY){
-    anguloHorizontal_ += deltaX * SENSIBILIDADE;
-    anguloVertical_ = std::clamp(anguloVertical_ + deltaY * SENSIBILIDADE, -89.0f, 89.0f); // se o valor for maior que 89, fica em 89, se for menor que -89, fica em -89, qualquer coisa entre, mantém o valor
+    anguloHorizontal_ -= deltaX * SENSIBILIDADE;
+    anguloVertical_ = std::clamp(anguloVertical_ - deltaY * SENSIBILIDADE, -89.0f, 89.0f); // se o valor for maior que 89, fica em 89, se for menor que -89, fica em -89, qualquer coisa entre, mantém o valor
 }
 
 void Camera::zoom(float delta){

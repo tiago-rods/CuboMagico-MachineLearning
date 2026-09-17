@@ -6,6 +6,10 @@
 #include "cubo/Movimento.hpp"
 #include "RenderCubie.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace {
     // Mesma ordem de cantos de sempre: ULF=0, URF=1, DLF=2, DRF=3, ULB=4,
     // URB=5, DLB=6, DRB=7. Cada face toca 4 dos 8 cantos.
@@ -69,6 +73,9 @@ void VisualizadorOpenGL::animarMovimento(const Movimento& mov) {
 
 void VisualizadorOpenGL::inicializarJanela(){
     // depois anotar o que cada coisa faz
+#ifdef _WIN32
+    SetProcessDPIAware(); // evita o Windows esticar/borrar o framebuffer em telas com escala de DPI
+#endif
     instancia_ = this;
 
     int argc = 1;
@@ -87,6 +94,7 @@ void VisualizadorOpenGL::inicializarJanela(){
     glutDisplayFunc(callbackDesenhar);
     glutMouseFunc(callbackMouseClick);
     glutMotionFunc(callbackMouseArrasto);
+    glutMouseWheelFunc(callbackMouseRoda);
     glutKeyboardFunc(callbackTeclado);
 
     janelaCriada_ = true;
@@ -154,6 +162,14 @@ void VisualizadorOpenGL::callbackMouseArrasto(int x, int y) {
     glutPostRedisplay();
 }
 
+void VisualizadorOpenGL::callbackMouseRoda(int roda, int direcao, int x, int y) {
+    if (!instancia_) return;
+
+    const float fatorZoom = 0.5f;
+    instancia_->camera_.zoom(-direcao * fatorZoom);
+    glutPostRedisplay();
+}
+
 void VisualizadorOpenGL::callbackTeclado(unsigned char tecla, int x, int y){
     if(!instancia_) return;
 
@@ -164,6 +180,7 @@ void VisualizadorOpenGL::callbackTeclado(unsigned char tecla, int x, int y){
 void VisualizadorOpenGL::processarBuffer(){
     try{
         Movimento movimento = parseMovimento(bufferComando_);
+        animarMovimento(movimento);
         comandoLido_.tipo = TipoComando::MOVIMENTO;
         comandoLido_.movimento = movimento;
     } catch(const std::invalid_argument&){

@@ -39,12 +39,12 @@ void corParaRGB(Cor cor, float& r, float& g, float& b){
 
 }
 void desenharCubie(int indiceCanto, const EstadoCubo& estado) {
-    const float meiaAresta = 0.49f; //metade do tamanho do cubie
+    const float meiaAresta = 0.515f; //metade do tamanho do cubie (quase igual ao espacamento de VisualizadorOpenGL.cpp, so um fiapo de gap pra evitar z-fighting)
     const float raio = 0.4f; //metade do lado do quadrado colorido
     const float eps = 0.001f; //evita z-fighting com corpo do cubie
 
     // Corpo do cubie (plastico) numa cor neutra
-    glColor3f(0.05f, 0.05f, 0.05f);
+    glColor3f(0.15f, 0.15f, 0.15f);
     glutSolidCube(meiaAresta * 2.0f);
 
     float sinalX = sinaisPorCanto[indiceCanto][0];
