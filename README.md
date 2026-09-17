@@ -180,15 +180,49 @@ Ambas implementam `IVisualizador { renderizar(EstadoCubo); Comando lerComando();
 - **VisualizadorOpenGL**: **freeglut + pipeline fixo** (glBegin/glRotatef/glTranslatef)
   em vez de OpenGL moderno com shaders — curva de aprendizado bem menor (sem
   VBO/VAO/GLSL), suficiente para desenhar 8 cubies coloridos (`glutSolidCube`) e
-  rotacioná-los. Dependências via CMake `FetchContent`.
-  - 8 cubies (cantos) em grade 3D, coloridos nas 3 faces visíveis conforme `EstadoCubo`.
-  - Câmera orbital simples (arraste do mouse gira a câmera, não o cubo).
+  rotacioná-los. Dependências via CMake `FetchContent`. **Implementado por completo
+  (17/09/2026)**:
+  - 8 cubies (cantos) em grade 3D (`VisualizadorOpenGL::desenharCena`), coloridos nas
+    3 faces visíveis conforme `EstadoCubo` (`RenderCubie::desenharCubie`), plástico
+    cinza escuro entre os stickers e gap mínimo entre cubies (só o suficiente pra
+    evitar z-fighting nas quinas).
+  - Câmera orbital (`Camera.cpp`): arraste do botão esquerdo do mouse gira a câmera
+    em torno do cubo (não o cubo em si); scroll do mouse controla o zoom
+    (`glutMouseWheelFunc`).
   - Comandos de movimento digitados no teclado (mesmo parser de texto do terminal:
-    `U`, `U'`, `U2`...), com animação simples (interpolar rotação da camada afetada
-    em N frames).
+    `U`, `U'`, `U2`...) — buffer acumulado por `glutKeyboardFunc` até Enter,
+    reaproveitando `parseMovimento` de `Movimento.cpp`.
+  - Animação de giro: ao reconhecer um movimento válido, a camada afetada (4 dos 8
+    cantos) gira em N frames interpolados antes de `aplicarMovimento` ser chamado de
+    verdade — puramente visual, não afeta o `EstadoCubo` durante a animação.
+  - Texto de ajuda na tela (HUD 2D via `glutBitmapCharacter` + `gluOrtho2D`)
+    explicando a sintaxe de movimento e ecoando o buffer sendo digitado em tempo
+    real.
+  - Janela DPI-aware (`SetProcessDPIAware` no Windows) pra evitar que o Windows
+    borre a imagem em monitores com escala >100%.
   - `VisualizadorOpenGL` só lê `EstadoCubo` e desenha; toda regra continua no núcleo.
+  - Testado via `PreviewMain.cpp`/executável `cubo_opengl_preview` (não entra no
+    `cubo_magico` final) — ver "Como rodar o preview do OpenGL" abaixo.
 - Usuário escolhe entre as duas views no início do programa (Factory Method
   `criarVisualizador`).
+
+### Como rodar o preview do OpenGL
+
+```
+cmake -S . -B build -DWITH_OPENGL=ON -G Ninja
+cmake --build build --target cubo_opengl_preview
+```
+
+O executável de teste é `build/cubo_opengl_preview.exe`. No Windows, ele precisa de
+4 DLLs que **não** ficam automaticamente do lado do `.exe` (pendência conhecida, ver
+`docs/anotacoes.md`): `libfreeglut.dll` (em `build/_deps/freeglut-build/bin/`) e
+`libstdc++-6.dll`/`libgcc_s_seh-1.dll`/`libwinpthread-1.dll` (em
+`C:\msys64\ucrt64\bin\`, ou equivalente da toolchain MinGW usada) — copie as 4 pra
+`build/` antes de rodar, ou adicione essas pastas ao `PATH`.
+
+**Controles**: arraste o botão esquerdo do mouse pra girar a câmera; scroll pra
+zoom; digite um movimento (`U`, `R'`, `F2`...) e aperte Enter pra aplicar (com
+animação).
 
 ### Estrutura de pastas / CMake
 
@@ -228,6 +262,21 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
    o laço único).
 
 ## Verificação
+
+### Status da implementação (17/09/2026)
+
+- **Parte D (visualizador OpenGL) completa**: D.1 a D.6 do checklist de
+  `docs/divisao-trabalho.md` implementados e testados visualmente via
+  `cubo_opengl_preview` (janela, câmera orbital + zoom, grade de 8 cubies
+  coloridos conforme `EstadoCubo`, entrada de movimento por teclado com
+  animação de giro, integração em `FactoryVisualizador` atrás de
+  `#ifdef COM_OPENGL`). D.7 (extra, animação) também feito. Só falta a
+  integração final quando `Controller`/`VisualizadorTerminal` (Pessoas B/C)
+  estiverem prontos — ver lembrete de integração em `docs/anotacoes.md`.
+- **Ainda pendente** (Pessoas A/B/C): `FrontierFila/Pilha/Prioridade`,
+  `BuscaGenerica`, `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`,
+  `Controller`, `VisualizadorTerminal` — todos ainda são stubs com
+  `// TODO`.
 
 ### Status da implementação (16/09/2026)
 
