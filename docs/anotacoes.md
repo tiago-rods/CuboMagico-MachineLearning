@@ -126,6 +126,81 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     casos / 34 assertions continuam passando (nenhum teste atual cobre
     `sucessoraCubo` diretamente, só `aplicarMovimento`).
 
+### 17-09-2026 (Pessoa A — Frontiers + laço genérico)
+- `FrontierFila`/`FrontierPilha`/`FrontierPrioridade` implementadas (wrapping de
+  `std::queue`/`std::stack`/`std::priority_queue`). `remover()` devolve
+  `nullptr` se estiver vazia. As frontiers **não são donas** dos nós: nunca dão
+  `delete`.
+- `ComparadorF`: `a->f() > b->f()` (min-heap, porque o `priority_queue` remove o
+  maior). **Empate em f → menor g primeiro.** Isso é necessário, não só
+  estético: a sucessora marca os estados como visitados já na *geração*, então o
+  primeiro nó que gera um estado fixa o g dele. Com `h ∈ {0,1,2}` consistente,
+  desempatar por maior g deixaria um nó com f igual e g maior fechar um estado
+  com g subótimo; desempatando por menor g isso não acontece.
+- `BuscaGenerica.cpp`: o laço do enunciado, linha a linha (os comentários no
+  código seguem o pseudocódigo). O arquivo não referencia BFS/IDDFS/A* em
+  código: só `IFrontier` (dá pra mostrar com grep na arguição; aparecem só em
+  comentários).
+- **Pendência do `delete` fechada** (esquema escolhido: simples, sem mexer em
+  `NoBusca.hpp`):
+  - `buscaGenerica` aloca a raiz; um nó removido que gera **0 filhos** (poda,
+    dedup ou limite de profundidade) leva `delete` na hora; um nó que gera
+    filhos vai pra um vetor `pais`.
+  - Invariante: todo nó está em exatamente um destes lugares: na frontier, em
+    `pais`, sendo o nó atual, ou já liberado. Isso vale porque `pai` só é
+    escrito na criação do filho (`Sucessora.cpp`), então um nó sem filhos não é
+    referenciado por ninguém.
+  - Limpeza por RAII (struct `DonoDosNos`): o destrutor drena a frontier e
+    libera `pais`, tanto quando acha a solução quanto quando não acha (e também
+    se houver exceção).
+  - **Trade-off**: nosso IDDFS usa memória **O(b^d)**, não O(b·d) como no
+    livro, porque `pais` guarda os nós internos da rodada pra reconstruir o
+    caminho (estimativa ~40 MB em d=6, ~500 MB em d=7). Na prática o limite do
+    IDDFS é o tempo, não a memória. Contagem de referências foi considerada e
+    descartada: exigiria campo novo em `NoBusca.hpp` e não ajudaria o BFS.
+  - Se alguém um dia fizer "reabrir nó"/trocar o `pai` de um nó no A*, o
+    `delete` imediato vira use-after-free (está comentado no código).
+- Verificado com um driver compilado direto no g++ (sem CMake nesta máquina,
+  não faz parte do repo): cubo resolvido (len 0, 1 visitado, nas 3), 18
+  scrambles de 1 a 6 movimentos (o caminho devolvido realmente resolve o cubo
+  nos 3 algoritmos, BFS == IDDFS em comprimento), caso sem solução, e um ledger
+  de `new`/`delete` confirmando **0 bytes vazados** em todos os casos.
+
+#### Contrato do `buscaGenerica` pra quem escreve BFS/IDDFS/A* (Pessoa B)
+- `limiteProfundidade`: `-1` = sem limite. Com `L >= 0`, nós com
+  `profundidade >= L` são avaliados mas **não expandidos**, então soluções de
+  até L movimentos são encontradas. IDDFS: laço de L = 0..`profundidadeMaxima_`.
+- `visitados`: `nullptr` (IDDFS) ou um set **vazio e novo a cada chamada**
+  (tem `assert`). O `buscaGenerica` já insere o estado inicial nele. Reaproveitar
+  o mesmo set entre as rodadas do IDDFS faria ele responder "sem solução".
+- `estadosVisitados` = estados removidos e avaliados **naquela chamada**. O IDDFS
+  precisa **somar** entre as rodadas, senão mostra só a última.
+- `caminho` vem na ordem raiz→objetivo. `estadoFinal` = estado objetivo quando
+  acha; = estado inicial quando não acha.
+- A frontier volta **vazia** depois da chamada (dá pra reusar o objeto, mas o
+  `tamanho()` no fim é sempre 0).
+
+#### ⚠️ Achado pro grupo: `heuristicaCantos` é inadmissível (A* pode sair não-ótimo)
+- `ehEstadoObjetivo` aceita **qualquer** cubo montado (24 orientações, decisão
+  registrada abaixo), mas `heuristicaCantos` mede distância só até o
+  `estadoResolvido()` fixo. No 2x2 girar o cubo inteiro é uma sequência de giros
+  de face (ex.: `U D'`), então existem estados-objetivo com h = 2.
+- Verificado: `U D'` → `ehEstadoObjetivo == true` e `heuristicaCantos == 2`
+  (18 pares de 2 movimentos dão isso); 1 movimento depois disso: h = 2 com
+  distância real 1.
+- Efeito medido no driver: BFS e IDDFS sempre batem, mas o **A* devolveu 1
+  movimento a mais** em 4 dos 18 scrambles (ex.: `R' U D2` → BFS 2, A* 3). O
+  teste `bfs.size() == astar.size()` planejado em `test_busca.cpp` **vai falhar**
+  nesses casos.
+- Correções possíveis (a decidir pelo grupo, fora da parte da Pessoa A):
+  1. `heuristicaCantos` = mínimo de `ceil(k/4)` entre as 24 orientações do cubo
+     resolvido. Fica admissível e consistente, mantém a decisão "qualquer cubo
+     montado é solução" e reusa `aplicarMovimento`.
+  2. `ehEstadoObjetivo` comparar com `estadoResolvido()` exato. É mais simples,
+     mas reverte a decisão abaixo.
+  - Enquanto nada disso for feito: testar `astar <= bfs + 2` e
+    `bfs == iddfs`.
+
 ## Decisões importantes (heurística e busca)
 
 Decisões que impactam diretamente como BFS/IDDFS/A* vão se comportar — documentadas
