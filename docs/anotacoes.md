@@ -8,14 +8,16 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
 - Fazer função de embaralhamento aleatório do cubo
 
 ## Próximos passos (TODO)
-- As 3 `Frontier*` (`FrontierFila`, `FrontierPilha`, `FrontierPrioridade`) —
-  wrapping mecânico de `std::queue`/`std::stack`/`std::priority_queue`; a
-  única pegadinha é o `ComparadorF` (min-heap: `a->f() > b->f()`).
-- `BuscaGenerica.cpp`: o laço genérico exigido pelo enunciado (requisito
-  crítico, -6 pts se BFS/IDDFS/A* não compartilharem literalmente esta
-  função). Também é o lugar natural pra decidir e implementar a limpeza
-  (`delete`) dos `NoBusca*` alocados por `sucessoraCubo`/`sucessoraComHeuristica`
-  — ninguém libera esses nós ainda.
+- ~~As 3 `Frontier*` e o `BuscaGenerica.cpp` (com a limpeza dos `NoBusca*`)~~
+  — **feito** (Parte A), ver "19-09-2026 (Parte A — Frontiers + laço genérico)"
+  em "Progresso", incluindo o contrato de uso do `buscaGenerica`.
+- **Decidir a correção da heurística** — ver "Achado pro grupo:
+  `heuristicaCantos` é inadmissível" na seção da Parte A. Enquanto não for
+  decidido, bloqueia o teste comparativo da parte B (`bfs == astar` falha em
+  alguns scrambles).
+- `VisualizadorOpenGL::mostrarMensagem` ainda é `// TODO`: a integração precisa
+  dele pra mostrar os passos da solução e a quantidade de estados visitados na
+  view 3D (os dois são exigidos pelo enunciado).
 - `BFS.cpp`/`IDDFS.cpp`/`AEstrela.cpp`: wiring fino (montar `Frontier` +
   `visitados` certos e chamar `buscaGenerica`).
 - `FactoryAlgoritmo.cpp`, `Controller.cpp`, `VisualizadorTerminal.cpp`: MVP
@@ -24,7 +26,7 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
   função livre tipo `embaralhar(int nMovimentos, unsigned seed)`, reusável
   tanto pelo `Controller::tratarEmbaralhar` quanto por `test_busca.cpp`.
 - **LEMBRETE DE INTEGRAÇÃO**: quando `Controller`/`VisualizadorTerminal`
-  (Pessoas B/C) estiverem prontos, precisa existir uma **tela inicial**
+  (Partes B/C) estiverem prontos, precisa existir uma **tela inicial**
   pedindo pro usuário escolher o modo de resolução antes de começar
   (Manual / BFS / IDDFS / A*) — hoje nem `VisualizadorOpenGL` nem
   `VisualizadorTerminal` têm esse menu, e `Controller::executar()` ainda é
@@ -131,6 +133,12 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
   - Efeito: nó não-raiz passa de até 17 filhos gerados (18 menos o inverso)
     para até 13 (18 menos 1 face inteira de 3 movimentos, menos 1 dos 2
     movimentos restantes do par de face oposta).
+    - *Correção (19-09-2026, Parte A)*: a poda 2 dá `continue` no laço de
+      **face** (antes do laço de `Sentido`), então corta os **3** movimentos da
+      face oposta, não só 1. O número real de filhos alterna: **12** quando a
+      última face é a de menor índice do par (U, L, F), e **15** quando é a de
+      maior índice (D, R, B), com média de ≈13,4. A conclusão de que a poda
+      reduz bem a árvore continua valendo.
   - Bugs pegos ao digitar (compilando): faltou `;` em `return filhos` e
     faltou fechar o `namespace{` (a chave da linha do `gerarFilhos` fechava
     só a função, não o namespace — sem a chave extra, `sucessoraCubo`/
@@ -269,7 +277,7 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     tempo real (por isso `callbackTeclado` ganhou um `glutPostRedisplay()`
     a cada tecla, não só no Enter).
 
-### 17-09-2026 (Pessoa A — Frontiers + laço genérico)
+### 19-09-2026 (Parte A — Frontiers + laço genérico)
 - `FrontierFila`/`FrontierPilha`/`FrontierPrioridade` implementadas (wrapping de
   `std::queue`/`std::stack`/`std::priority_queue`). `remover()` devolve
   `nullptr` se estiver vazia. As frontiers **não são donas** dos nós: nunca dão
@@ -309,7 +317,7 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
   nos 3 algoritmos, BFS == IDDFS em comprimento), caso sem solução, e um ledger
   de `new`/`delete` confirmando **0 bytes vazados** em todos os casos.
 
-#### Contrato do `buscaGenerica` pra quem escreve BFS/IDDFS/A* (Pessoa B)
+#### Contrato do `buscaGenerica` pra quem escreve BFS/IDDFS/A* (Parte B)
 - `limiteProfundidade`: `-1` = sem limite. Com `L >= 0`, nós com
   `profundidade >= L` são avaliados mas **não expandidos**, então soluções de
   até L movimentos são encontradas. IDDFS: laço de L = 0..`profundidadeMaxima_`.
@@ -335,7 +343,7 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
   movimento a mais** em 4 dos 18 scrambles (ex.: `R' U D2` → BFS 2, A* 3). O
   teste `bfs.size() == astar.size()` planejado em `test_busca.cpp` **vai falhar**
   nesses casos.
-- Correções possíveis (a decidir pelo grupo, fora da parte da Pessoa A):
+- Correções possíveis (a decidir pelo grupo, fora da parte da Parte A):
   1. `heuristicaCantos` = mínimo de `ceil(k/4)` entre as 24 orientações do cubo
      resolvido. Fica admissível e consistente, mantém a decisão "qualquer cubo
      montado é solução" e reusa `aplicarMovimento`.

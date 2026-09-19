@@ -158,16 +158,33 @@ visitados?, limiteProfundidade=-1)` implementa exatamente o pseudocódigo do enu
 
 - **BFS**: `FrontierFila` (std::queue) + `unordered_set` de visitados,
   `limiteProfundidade=-1`.
-- **A***: `FrontierPrioridade` (std::priority_queue ordenada por `f=g+h`) + visitados
-  guardando melhor `g`, `limiteProfundidade=-1`. Sucessora calcula `h` via
-  `heuristicaCantos`.
+- **A***: `FrontierPrioridade` (std::priority_queue ordenada por `f=g+h`) +
+  `unordered_set` de visitados, `limiteProfundidade=-1`. Sucessora calcula `h` via
+  `heuristicaCantos`. O estado é marcado como visitado na **geração** (não guarda
+  o melhor `g`); o que mantém isso correto é o desempate da fila de prioridade:
+  com f igual, sai primeiro o de **menor g**.
 - **IDDFS**: laço externo que roda `buscaGenerica` repetidas vezes, aumentando
   `limiteProfundidade` de 1 até 11 (God's Number), **cada rodada com uma
   `FrontierPilha` nova**, sem visitados globais. A orquestração de aumento de
   profundidade fica fora de `buscaGenerica`, que nunca é alterada.
 
+Semântica dos parâmetros (documentação completa em docs/anotacoes.md):
+- `limiteProfundidade = L`: nós com `profundidade >= L` são avaliados mas **não
+  expandidos**, então soluções de até L movimentos são encontradas. `-1` = sem
+  limite.
+- `estadosVisitados` conta os estados removidos e avaliados **naquela chamada**.
+  O IDDFS precisa somar entre as rodadas.
+- `buscaGenerica` é dona de todos os `NoBusca*` da chamada e libera todos antes de
+  retornar.
+
+> ⚠️ A heurística atual (`heuristicaCantos`) é **inadmissível** em relação ao
+> objetivo "cubo montado em qualquer orientação", então o A* pode devolver uma
+> solução até 2 movimentos acima do ótimo. Detalhes e correções possíveis em
+> `docs/anotacoes.md` ("Achado pro grupo").
+
 Verificação do requisito: nenhum `if`/`#ifdef` dentro de `BuscaGenerica.cpp` que
-dependa do algoritmo — só chama `IFrontier`. Demonstrável com grep na arguição.
+dependa do algoritmo — só chama `IFrontier`. Demonstrável com grep na arguição
+(BFS/IDDFS/A* só aparecem em comentários, nunca em código).
 
 ### Interface: Terminal (MVP) + OpenGL 3D (em paralelo)
 
@@ -271,12 +288,21 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
   coloridos conforme `EstadoCubo`, entrada de movimento por teclado com
   animação de giro, integração em `FactoryVisualizador` atrás de
   `#ifdef COM_OPENGL`). D.7 (extra, animação) também feito. Só falta a
-  integração final quando `Controller`/`VisualizadorTerminal` (Pessoas B/C)
+  integração final quando `Controller`/`VisualizadorTerminal` (Partes B/C)
   estiverem prontos — ver lembrete de integração em `docs/anotacoes.md`.
-- **Ainda pendente** (Pessoas A/B/C): `FrontierFila/Pilha/Prioridade`,
-  `BuscaGenerica`, `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`,
-  `Controller`, `VisualizadorTerminal` — todos ainda são stubs com
-  `// TODO`.
+- **Parte A (frontiers + laço genérico) completa (19/09/2026)**:
+  `FrontierFila`/`FrontierPilha`/`FrontierPrioridade` e `buscaGenerica`, com
+  gerenciamento de memória dos `NoBusca*` (a pendência do `delete` foi
+  fechada). Verificado com um driver compilado direto no g++: 18 scrambles de
+  1 a 6 movimentos nos 3 algoritmos, caso sem solução, e 0 bytes vazados. O
+  contrato de uso do `buscaGenerica` (pra quem escreve BFS/IDDFS/A*) está em
+  `docs/anotacoes.md`, seção "19-09-2026 (Parte A — Frontiers + laço
+  genérico)".
+- **Ainda pendente**:
+  - Parte B: `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`, `test_busca.cpp`.
+  - Parte C: `Controller`, `VisualizadorTerminal`, `main.cpp`.
+  - `VisualizadorOpenGL::mostrarMensagem` ainda vazio: é por ele que a view 3D
+    mostraria os passos da solução e a quantidade de estados visitados.
 
 ### Status da implementação (16/09/2026)
 
@@ -320,11 +346,14 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
 - Testes unitários (`doctest`): 4×mesmo giro = identidade; giro+inverso = identidade;
   `U2` = `U,U`; estado resolvido → objetivo=true, heurística=0.
 - Rodar os 3 algoritmos no mesmo scramble pequeno (1-5 movimentos, seed fixa) e checar
-  que todos retornam soluções de mesmo comprimento ótimo.
+  que todos retornam soluções de mesmo comprimento ótimo. **Ressalva**: enquanto a
+  heurística não for corrigida, o esperado é `bfs == iddfs` e `astar <= bfs + 2`
+  (ver aviso em "O laço genérico").
 - Medir e documentar até que profundidade de scramble o BFS responde em tempo
   aceitável na máquina do grupo (base: 6-8 movimentos); usar esse número como limite
   do menu de embaralhar.
 - Teste manual: percorrer menu completo (jogar, embaralhar com seed fixa, resolver com
   os 3 algoritmos, trocar entre view terminal/OpenGL) sem crashes em entradas inválidas.
 - Checar via grep que `BuscaGenerica.cpp` não referencia símbolos de BFS/IDDFS/A* —
-  evidência do requisito crítico do laço único.
+  evidência do requisito crítico do laço único. (Hoje os nomes só aparecem em
+  comentários; no código o arquivo só usa `IFrontier`.)
