@@ -12,6 +12,40 @@ Legenda:
 
 ---
 
+## Integração com a Parte A (19/09/2026)
+
+A branch `feat/busca_e_laco` foi integrada na `main`. Rodando os 3 algoritmos
+com o laço da Pessoa A (scrambles de 0 a 6 movimentos): BFS e IDDFS dão sempre
+o mesmo tamanho ótimo, todo caminho devolvido resolve o cubo, e o A* visita
+bem menos estados (scramble de 7 movimentos: 204.285 no BFS × 1.625 no A*).
+
+Três ajustes feitos na integração:
+
+1. **`BFS::resolver` não insere mais o estado inicial em `visitados`.** O
+   `buscaGenerica` já insere, e tem `assert(visitados == nullptr ||
+   visitados->empty())` — com a inserção anterior o programa abortava. A
+   decisão "quem insere é o `resolver`" fica **revogada**: quem insere é o laço.
+2. **`ComparadorF` voltou para o desempate por maior `g`** (arquivo da Pessoa
+   A). Ela tinha escrito menor `g` por causa do "visitados marcados na
+   geração", mas o nosso A* passa `visitados = nullptr` e usa
+   `sucessoraComMelhorG`, então esse risco não existe. Medido: maior `g`
+   visita ~metade dos estados (1.625 × 3.161 no scramble de 7), com a mesma
+   solução. Motivo registrado no comentário do próprio arquivo.
+3. **Posse dos nós**: a proposta do `filhosVivos` **não foi usada** e está
+   encerrada. A Pessoa A resolveu com RAII (`DonoDosNos`): nó que não gera
+   filho é liberado na hora, o resto sai no destrutor. Correto e sem
+   vazamentos (ela mediu). Custo: no IDDFS a memória cresce com a árvore
+   explorada (~500 MB em profundidade 7, estimativa dela), o que na prática
+   limita a profundidade do IDDFS.
+
+**A heurística inadmissível foi confirmada pela Pessoa A**, de forma
+independente e com a mesma análise. Caso reprodutível do nosso driver:
+scramble `L2 R R R' L' U2` → BFS e IDDFS dão 2 movimentos, A* dá 3. Enquanto
+não for corrigida, o teste `bfs.size() == astar.size()` falha. As duas
+correções possíveis estão em `docs/anotacoes.md` > "Achado pro grupo".
+
+---
+
 ## Status da implementação (17/09/2026)
 
 - **Implementado**: `FactoryAlgoritmo.cpp`, `BFS.cpp`, `IDDFS.cpp`,
@@ -31,19 +65,20 @@ Legenda:
 
 ## O que cada pessoa precisa saber
 
-### Pessoa A (Frontiers + `BuscaGenerica`)
-1. **Estado visitado = cada `remover()` soma 1** (decidido). Contar dentro do
-   laço, logo depois do `remover()`. Remoções da limpeza final não contam.
-2. **`caminho` montado dentro de `buscaGenerica`** (proposta) — ver
-   [Caminho](#2-onde-o-caminho-é-montado-proposta).
-3. **`buscaGenerica` é dona de todos os `NoBusca*`** (proposta) — ver
-   [Dono dos nós](#3-dono-dos-nobusca-e-delete-proposta). Implica adicionar
-   `int filhosVivos = 0;` em `NoBusca.hpp`.
-4. **Semântica de `limiteProfundidade`** (necessária para o IDDFS começar em 0):
-   nó com `profundidade >= limite` **é testado** como objetivo, mas **não é
+### Pessoa A (Frontiers + `BuscaGenerica`) — entregue em 19/09/2026
+Os itens 1 a 4 abaixo chegaram implementados como estavam combinados; ficam
+aqui como registro do contrato. Ver "Integração com a Parte A" no topo.
+
+1. **Estado visitado = cada `remover()` soma 1** (feito). Remoções da limpeza
+   final não contam.
+2. **`caminho` montado dentro de `buscaGenerica`** (feito, `reconstruirCaminho`).
+3. **`buscaGenerica` é dona de todos os `NoBusca*`** (feito, por RAII — a
+   proposta do `filhosVivos` foi descartada, ver topo).
+4. **Semântica de `limiteProfundidade`** (feito): nó com
+   `profundidade >= limite` **é testado** como objetivo, mas **não é
    expandido**. `-1` = sem limite.
-5. **Desempate no `ComparadorF`** (decidido pela B, arquivo da A): com `f`
-   igual, sai primeiro o nó de **maior `g`**:
+5. **Desempate no `ComparadorF`** (decidido pela B, arquivo da A; **corrigido
+   na integração**): com `f` igual, sai primeiro o nó de **maior `g`**:
    ```cpp
    bool FrontierPrioridade::ComparadorF::operator()(const NoBusca* a, const NoBusca* b) const {
        if (a->f() != b->f()) return a->f() > b->f();   // min-heap por f
@@ -54,8 +89,9 @@ Legenda:
    regra, não a exceção. Preferir maior `g` aproxima do objetivo mais rápido e
    reduz estados visitados, sem perder otimalidade (só afeta a ordem dentro do
    último nível de `f`).
-6. **Quem insere o estado inicial em `visitados` é o `resolver`**, não o laço
-   (decidido). `buscaGenerica` só cria o nó raiz e o insere na estrutura.
+6. ~~**Quem insere o estado inicial em `visitados` é o `resolver`**~~ —
+   **revogado na integração**: quem insere é o `buscaGenerica`, e ele exige
+   receber o set vazio (`assert`). O `resolver` só faz o `reserve`.
 
 ### Pessoa C (Controller + terminal + `main`)
 1. **`test_busca.cpp` usa o seu `embaralhar(nMovimentos, seed)`** (decidido).
@@ -113,7 +149,11 @@ Por quê aqui:
 - `ResultadoBusca` já tem `caminho` e `estadoFinal` — o contrato já aponta
   para isso.
 
-### 3. Dono dos `NoBusca*` e `delete` (proposta)
+### 3. Dono dos `NoBusca*` e `delete` (proposta — **superada**)
+> A Pessoa A implementou com RAII (`DonoDosNos` em `BuscaGenerica.cpp`), não
+> com a contagem descrita abaixo. A regra de posse do primeiro parágrafo
+> continua valendo; o resto fica como registro da discussão.
+
 **`buscaGenerica` é dona de todo nó**: o raiz (que ela mesma cria) e todo nó
 que a `sucessora` devolve. Regra de posse: **o que a sucessora devolve passa a
 ser da busca; o que a sucessora descarta, ela mesma nunca aloca** (ou libera
@@ -159,7 +199,7 @@ A* as duas formas gastam praticamente o mesmo.
 | Decisão | Status |
 |---|---|
 | `FrontierFila` + `sucessoraCubo` (sem heurística) | obrigatório/óbvio |
-| `estadoInicial` inserido em `visitados` **dentro do `resolver`** | decidido |
+| ~~`estadoInicial` inserido em `visitados` dentro do `resolver`~~ | revogado: quem insere é o `buscaGenerica` |
 | `visitados.reserve(...)` antes da busca | decidido |
 
 Sobre o `reserve`: o valor inicial sugerido é `1 << 20` (~1 milhão de

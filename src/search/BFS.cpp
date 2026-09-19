@@ -9,10 +9,10 @@ ResultadoBusca BFS::resolver(const EstadoCubo& estadoInicial) {
 
     // Valor inicial; ajustar depois de medir ate que profundidade de
     // embaralhamento o BFS responde em tempo aceitavel.
+    // Entra vazio de proposito: buscaGenerica exige isso (assert) e ja insere
+    // o estado inicial nele.
     std::unordered_set<EstadoCubo, HashEstado> visitados;
     visitados.reserve(1 << 20);
-    // A sucessora so marca os filhos; a raiz e marcada aqui (docs/decisoes-pessoa-b.md).
-    visitados.insert(estadoInicial);
 
     return buscaGenerica(fila, estadoInicial, sucessoraCubo, ehEstadoObjetivo, &visitados);
 }

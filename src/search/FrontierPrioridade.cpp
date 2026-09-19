@@ -7,15 +7,22 @@
 // Para o menor f = g + h sair primeiro (min-heap), a comparacao e invertida:
 // "a vem depois de b" quando a tem f maior.
 //
-// Empate em f: menor g (profundidade) sai primeiro. Nao e so estetico: a
-// sucessora marca estados como visitados na GERACAO, entao o primeiro no que
-// gera um estado "trava" o g dele. Priorizando menor g no empate, o no do
-// caminho otimo sempre e expandido antes de um no de mesmo f com g maior.
+// Empate em f: MAIOR g (profundidade) sai primeiro, ou seja, mergulha em
+// direcao ao objetivo em vez de varrer o nivel. Nao e so estetico: como
+// heuristicaCantos so vale 0, 1 ou 2, quase todo no empata em f.
+//
+// O A* nao usa o set de visitados (passa nullptr): ele chama
+// sucessoraComMelhorG, que guarda o melhor g por estado e regera um estado
+// quando aparece um caminho com g menor. Por isso nao existe o risco de um no
+// de g maior "travar" um estado com g subotimo, e o desempate pode priorizar
+// o g maior. Medido (Pessoa B, 19-09-2026): maior g visita ~metade dos estados
+// (scramble de 7 movimentos: 1.625 contra 3.161), com a mesma solucao.
+//
 // Nao desempatar por endereco de ponteiro: o resultado deixaria de ser
 // reprodutivel entre execucoes.
 bool FrontierPrioridade::ComparadorF::operator()(const NoBusca* a, const NoBusca* b) const {
     if (a->f() != b->f()) return a->f() > b->f();
-    return a->profundidade > b->profundidade;
+    return a->profundidade < b->profundidade;
 }
 
 void FrontierPrioridade::inserir(NoBusca* no) {
