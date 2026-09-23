@@ -2,6 +2,7 @@
 #include "app/FactoryVisualizador.hpp"
 
 int main() {
-    // TODO: criarVisualizador(TipoView::TERMINAL), montar Controller e chamar executar().
+    Controller controller(criarVisualizador(TipoView::TERMINAL));
+    controller.executar();
     return 0;
 }

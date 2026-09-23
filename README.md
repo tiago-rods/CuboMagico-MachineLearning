@@ -25,6 +25,70 @@ Descrição original do professor em `docs/descricao-projeto.md`.
 - Interface amigável o suficiente para visualizar e manipular o cubo (pode ser via terminal).
 - Extra (não pontuado obrigatoriamente): escolha de heurística, interface 3D, etc.
 
+## Como compilar e rodar
+
+### Pré-requisitos
+
+Compilador `g++`, `cmake` e `ninja`. No Windows, o jeito recomendado é instalar os três
+pelo MSYS2, no terminal **"MSYS2 UCRT64"** (não é o PowerShell comum):
+```
+pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
+```
+
+Se for compilar num PowerShell comum (fora do terminal MSYS2 UCRT64), primeiro adicione o
+toolchain ao `PATH` dessa sessão (precisa repetir toda vez que abrir um PowerShell novo):
+```
+$env:Path = "C:\msys64\ucrt64\bin;" + $env:Path
+```
+
+### Compilar (versão terminal, sem a tela 3D)
+
+```
+cmake -S . -B build -G Ninja "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+cmake --build build --target cubo_magico
+```
+(a flag `CMAKE_POLICY_VERSION_MINIMUM` só é necessária com CMake >= 4.0, por causa de uma
+dependência baixada automaticamente — ver detalhes na seção "Status dos testes")
+
+### Compilar com a tela 3D (OpenGL)
+
+```
+cmake -S . -B build -G Ninja -DWITH_OPENGL=ON "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+cmake --build build --target cubo_magico
+```
+Depois de compilar com `-DWITH_OPENGL=ON`, copie as DLLs de runtime pro lado do `.exe`
+(necessário toda vez que a pasta `build` for recriada do zero — sem isso o programa fecha
+sozinho ao tentar abrir a janela 3D):
+```
+Copy-Item "build\_deps\freeglut-build\bin\libfreeglut.dll" "build\" -Force
+Copy-Item "C:\msys64\ucrt64\bin\libstdc++-6.dll","C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll","C:\msys64\ucrt64\bin\libwinpthread-1.dll" "build\" -Force
+```
+
+### Rodar
+
+```
+.\build\cubo_magico.exe
+```
+
+### Recompilar depois de mudar código
+
+Não precisa repetir a configuração (o primeiro `cmake -S . -B build ...`) — só o passo de
+build, que recompila apenas o que mudou:
+```
+cmake --build build --target cubo_magico
+```
+
+### Comandos dentro do programa
+
+```
+U, U', U2, D, D', L, L', L2, R, R', R2, F, F', F2, B, B', B2   gira uma face
+embaralhar N [seed]        embaralha o cubo (seed opcional, pra repetir o mesmo embaralhamento)
+bfs | iddfs | astar        pede pra uma das 3 IAs resolver o cubo atual
+estado                     redesenha o cubo
+trocar terminal|opengl     troca a interface (opengl só se compilado com -DWITH_OPENGL=ON)
+sair                       encerra o programa
+```
+
 ## Decisões de arquitetura do grupo
 
 Além do exigido, o grupo optou por seguir **SOLID/POO com design patterns** e por
@@ -50,7 +114,8 @@ App/Controller  →  depende de abstrações, nunca de implementações concreta
 - **LSP**: qualquer `IFrontier` (fila/pilha/heap) e qualquer `IVisualizador`
   (terminal/OpenGL) são intercambiáveis onde a interface é usada.
 - **ISP**: interfaces pequenas — `IFrontier` só tem `inserir/remover/vazia`;
-  `IVisualizador` só tem `renderizar(EstadoCubo)` e `lerComando()`.
+  `IVisualizador` só tem `renderizar(EstadoCubo)`, `lerComando()` e
+  `mostrarMensagem(string)`.
 - **DIP**: `BuscaGenerica` e o `Controller` do menu dependem só de abstrações
   (`IFrontier`, `IAlgoritmoBusca`, `IVisualizador`), nunca de `FrontierFila` ou
   `VisualizadorOpenGL` diretamente — concretizações injetadas na composição (`main.cpp`).
@@ -158,20 +223,38 @@ visitados?, limiteProfundidade=-1)` implementa exatamente o pseudocódigo do enu
 
 - **BFS**: `FrontierFila` (std::queue) + `unordered_set` de visitados,
   `limiteProfundidade=-1`.
-- **A***: `FrontierPrioridade` (std::priority_queue ordenada por `f=g+h`) + visitados
-  guardando melhor `g`, `limiteProfundidade=-1`. Sucessora calcula `h` via
-  `heuristicaCantos`.
+- **A***: `FrontierPrioridade` (std::priority_queue ordenada por `f=g+h`) +
+  `unordered_set` de visitados, `limiteProfundidade=-1`. Sucessora calcula `h` via
+  `heuristicaCantos`. O estado é marcado como visitado na **geração** (não guarda
+  o melhor `g`); o que mantém isso correto é o desempate da fila de prioridade:
+  com f igual, sai primeiro o de **menor g**.
 - **IDDFS**: laço externo que roda `buscaGenerica` repetidas vezes, aumentando
   `limiteProfundidade` de 1 até 11 (God's Number), **cada rodada com uma
   `FrontierPilha` nova**, sem visitados globais. A orquestração de aumento de
   profundidade fica fora de `buscaGenerica`, que nunca é alterada.
 
+Semântica dos parâmetros (documentação completa em docs/anotacoes.md):
+- `limiteProfundidade = L`: nós com `profundidade >= L` são avaliados mas **não
+  expandidos**, então soluções de até L movimentos são encontradas. `-1` = sem
+  limite.
+- `estadosVisitados` conta os estados removidos e avaliados **naquela chamada**.
+  O IDDFS precisa somar entre as rodadas.
+- `buscaGenerica` é dona de todos os `NoBusca*` da chamada e libera todos antes de
+  retornar.
+
+> ⚠️ A heurística atual (`heuristicaCantos`) é **inadmissível** em relação ao
+> objetivo "cubo montado em qualquer orientação", então o A* pode devolver uma
+> solução até 2 movimentos acima do ótimo. Detalhes e correções possíveis em
+> `docs/anotacoes.md` ("Achado pro grupo").
+
 Verificação do requisito: nenhum `if`/`#ifdef` dentro de `BuscaGenerica.cpp` que
-dependa do algoritmo — só chama `IFrontier`. Demonstrável com grep na arguição.
+dependa do algoritmo — só chama `IFrontier`. Demonstrável com grep na arguição
+(BFS/IDDFS/A* só aparecem em comentários, nunca em código).
 
 ### Interface: Terminal (MVP) + OpenGL 3D (em paralelo)
 
-Ambas implementam `IVisualizador { renderizar(EstadoCubo); Comando lerComando(); }`.
+Ambas implementam `IVisualizador { renderizar(EstadoCubo); Comando lerComando();
+mostrarMensagem(string); }`.
 
 - **VisualizadorTerminal**: desenho ASCII em planificação de cruz (mesmo layout de
   índices do `EstadoCubo`), cores via ANSI (Windows Terminal/PS5.1+ suporta
@@ -209,7 +292,7 @@ Ambas implementam `IVisualizador { renderizar(EstadoCubo); Comando lerComando();
 ### Como rodar o preview do OpenGL
 
 ```
-cmake -S . -B build -DWITH_OPENGL=ON -G Ninja
+cmake -S . -B build -DWITH_OPENGL=ON -G Ninja "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 cmake --build build --target cubo_opengl_preview
 ```
 
@@ -263,6 +346,29 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
 
 ## Verificação
 
+### Status da implementação (23/09/2026)
+
+- **Parte B (algoritmos de busca) completa**: `BFS`/`IDDFS`/`AEstrela`,
+  `FactoryAlgoritmo` e `sucessoraComMelhorG` integrados em `main` (branch
+  `pessoaB`), com os testes comparativos de `test_busca.cpp`.
+- **Parte C (Controller + terminal + `main`) completa**: `Controller` (menu
+  principal, movimento com checagem de objetivo, embaralhar, resolver,
+  trocar view), `VisualizadorTerminal` (desenho ASCII colorido + leitura de
+  comandos) e `main.cpp`. Inclui a função `embaralhar(nMovimentos, seed)`
+  (`cubo_core`, `std::mt19937` + módulo — determinística entre
+  compiladores, ver seção "Como compilar e rodar").
+- **`VisualizadorOpenGL::mostrarMensagem` implementado**: a tela 3D também
+  passou a reconhecer todos os comandos (antes só reconhecia movimentos de
+  face) e a mostrar mensagens na tela (resultado de BFS/IDDFS/A*, "cubo
+  resolvido", comando inválido), reaproveitando o `desenharTexto` já
+  existente. As duas views agora compartilham o mesmo reconhecedor de
+  comandos (`interpretarComando`, em `src/view/InterpretadorComando.cpp`),
+  pra nunca mais ficarem entendendo vocabulários diferentes.
+- **Jogo completo e jogável de ponta a ponta**: `cubo_tests` com 12 casos /
+  130 assertions passando; testado manualmente cobrindo jogar manualmente,
+  embaralhar com/sem seed, resolver com os 3 algoritmos, trocar entre
+  terminal e OpenGL, e comandos inválidos.
+
 ### Status da implementação (17/09/2026)
 
 - **Parte D (visualizador OpenGL) completa**: D.1 a D.6 do checklist de
@@ -271,12 +377,21 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
   coloridos conforme `EstadoCubo`, entrada de movimento por teclado com
   animação de giro, integração em `FactoryVisualizador` atrás de
   `#ifdef COM_OPENGL`). D.7 (extra, animação) também feito. Só falta a
-  integração final quando `Controller`/`VisualizadorTerminal` (Pessoas B/C)
+  integração final quando `Controller`/`VisualizadorTerminal` (Partes B/C)
   estiverem prontos — ver lembrete de integração em `docs/anotacoes.md`.
-- **Ainda pendente** (Pessoas A/B/C): `FrontierFila/Pilha/Prioridade`,
-  `BuscaGenerica`, `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`,
-  `Controller`, `VisualizadorTerminal` — todos ainda são stubs com
-  `// TODO`.
+- **Parte A (frontiers + laço genérico) completa (19/09/2026)**:
+  `FrontierFila`/`FrontierPilha`/`FrontierPrioridade` e `buscaGenerica`, com
+  gerenciamento de memória dos `NoBusca*` (a pendência do `delete` foi
+  fechada). Verificado com um driver compilado direto no g++: 18 scrambles de
+  1 a 6 movimentos nos 3 algoritmos, caso sem solução, e 0 bytes vazados. O
+  contrato de uso do `buscaGenerica` (pra quem escreve BFS/IDDFS/A*) está em
+  `docs/anotacoes.md`, seção "19-09-2026 (Parte A — Frontiers + laço
+  genérico)".
+- **Ainda pendente**:
+  - Parte B: `BFS`/`IDDFS`/`AEstrela`, `FactoryAlgoritmo`, `test_busca.cpp`.
+  - Parte C: `Controller`, `VisualizadorTerminal`, `main.cpp`.
+  - `VisualizadorOpenGL::mostrarMensagem` ainda vazio: é por ele que a view 3D
+    mostraria os passos da solução e a quantidade de estados visitados.
 
 ### Status da implementação (16/09/2026)
 
@@ -317,14 +432,17 @@ biblioteca separada de `cubo_view` (terminal sempre, OpenGL via
 
 ### Checklist de verificação (plano completo)
 
-- Testes unitários (`doctest`): 4×mesmo giro = identidade; giro+inverso = identidade;
+- [x] Testes unitários (`doctest`): 4×mesmo giro = identidade; giro+inverso = identidade;
   `U2` = `U,U`; estado resolvido → objetivo=true, heurística=0.
-- Rodar os 3 algoritmos no mesmo scramble pequeno (1-5 movimentos, seed fixa) e checar
-  que todos retornam soluções de mesmo comprimento ótimo.
-- Medir e documentar até que profundidade de scramble o BFS responde em tempo
+- [x] Rodar os 3 algoritmos no mesmo scramble pequeno (1-5 movimentos, seed fixa) e checar
+  que todos retornam soluções de mesmo comprimento ótimo. **Ressalva**: enquanto a
+  heurística não for corrigida, o esperado é `bfs == iddfs` e `astar <= bfs + 2`
+  (ver aviso em "O laço genérico") — coberto em `tests/test_busca.cpp`.
+- [ ] Medir e documentar até que profundidade de scramble o BFS responde em tempo
   aceitável na máquina do grupo (base: 6-8 movimentos); usar esse número como limite
   do menu de embaralhar.
-- Teste manual: percorrer menu completo (jogar, embaralhar com seed fixa, resolver com
+- [x] Teste manual: percorrer menu completo (jogar, embaralhar com seed fixa, resolver com
   os 3 algoritmos, trocar entre view terminal/OpenGL) sem crashes em entradas inválidas.
-- Checar via grep que `BuscaGenerica.cpp` não referencia símbolos de BFS/IDDFS/A* —
-  evidência do requisito crítico do laço único.
+- [x] Checar via grep que `BuscaGenerica.cpp` não referencia símbolos de BFS/IDDFS/A* —
+  evidência do requisito crítico do laço único. (Hoje os nomes só aparecem em
+  comentários; no código o arquivo só usa `IFrontier`.)

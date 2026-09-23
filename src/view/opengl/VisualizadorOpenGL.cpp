@@ -1,9 +1,10 @@
 #include "view/opengl/VisualizadorOpenGL.hpp"
 #include <GL/freeglut.h>
-#include <stdexcept>
+#include <sstream>
 #include <thread>
 #include <chrono>
 #include "cubo/Movimento.hpp"
+#include "view/InterpretadorComando.hpp"
 #include "RenderCubie.hpp"
 
 #ifdef _WIN32
@@ -54,12 +55,12 @@ bool VisualizadorOpenGL::cantoNaFace(int indiceCanto, Face face) const {
 }
 
 
-void VisualizadorOpenGL::animarMovimento(const Movimento& mov) {
+void VisualizadorOpenGL::animarMovimento(const Movimento& movimento) {
     const int totalFrames = 24;
-    const float anguloFinal = anguloPorSentido(mov.sentido);
+    const float anguloFinal = anguloPorSentido(movimento.sentido);
 
     animando_ = true;
-    faceAnimando_ = mov.face;
+    faceAnimando_ = movimento.face;
 
     for(int frame = 1; frame <= totalFrames; ++frame){
         anguloAnimacao_ = anguloFinal * frame / static_cast<float>(totalFrames);
@@ -168,6 +169,16 @@ void VisualizadorOpenGL::desenharAjuda() {
     desenharTexto(10, altura - 40, "Adicione ' para anti-horario, ex: U'");
     desenharTexto(10, altura - 60, "Adicione 2 para giro duplo, ex: U2");
     desenharTexto(10, altura - 80, "Digite e aperte Enter para aplicar");
+    desenharTexto(10, altura - 100, "embaralhar N [seed] | bfs | iddfs | astar | trocar terminal | sair");
+
+    float y = altura - 130;
+    std::istringstream linhasMensagem(ultimaMensagem_);
+    std::string linhaMensagem;
+    while (std::getline(linhasMensagem, linhaMensagem)) {
+        desenharTexto(10, y, linhaMensagem);
+        y -= 20;
+    }
+
     desenharTexto(10, 20, "Comando: " + bufferComando_);
 
     glEnable(GL_DEPTH_TEST);
@@ -220,16 +231,10 @@ void VisualizadorOpenGL::callbackTeclado(unsigned char tecla, int x, int y){
 }
 
 void VisualizadorOpenGL::processarBuffer(){
-    try{
-        Movimento movimento = parseMovimento(bufferComando_);
-        animarMovimento(movimento);
-        comandoLido_.tipo = TipoComando::MOVIMENTO;
-        comandoLido_.movimento = movimento;
-    } catch(const std::invalid_argument&){
-        comandoLido_.tipo = TipoComando::INVALIDO;
-        comandoLido_.argumento = bufferComando_;
-    }
-
+    // Nao anima aqui: quem decide quando animar um movimento e' o Controller
+    // (via animarMovimento()), tanto para movimentos manuais quanto para os
+    // passos de uma solucao encontrada pela IA.
+    comandoLido_ = interpretarComando(bufferComando_);
     bufferComando_.clear();
     comandoPronto_ = true;
 }
@@ -254,5 +259,10 @@ void VisualizadorOpenGL::renderizar(const EstadoCubo& estado) {
 }
 
 void VisualizadorOpenGL::mostrarMensagem(const std::string& mensagem) {
-    // TODO (D.5/D.6)
+    ultimaMensagem_ = mensagem;
+
+    if(!janelaCriada_) inicializarJanela();
+
+    glutPostRedisplay();
+    glutMainLoopEvent();
 }

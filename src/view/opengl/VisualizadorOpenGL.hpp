@@ -8,15 +8,15 @@ public:
     void renderizar(const EstadoCubo& estado) override;
     Comando lerComando() override;
     void mostrarMensagem(const std::string& mensagem) override;
+    void animarMovimento(const Movimento& movimento) override;
 
-private: 
+private:
     void inicializarJanela();
     void desenharCena();
     void desenharAjuda();
     void desenharTexto(float x, float y, const std::string& texto);
     void processarBuffer();
 
-    void animarMovimento(const Movimento& mov);
     bool cantoNaFace(int indiceCanto, Face face) const;
 
     static void callbackDesenhar();
@@ -34,7 +34,8 @@ private:
 
     std::string bufferComando_;
     bool comandoPronto_ = false;
-    Comando comandoLido_; 
+    Comando comandoLido_;
+    std::string ultimaMensagem_;
 
     bool animando_ = false;
     Face faceAnimando_ = Face::U;

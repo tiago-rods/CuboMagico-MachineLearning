@@ -8,14 +8,16 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
 - Fazer função de embaralhamento aleatório do cubo
 
 ## Próximos passos (TODO)
-- As 3 `Frontier*` (`FrontierFila`, `FrontierPilha`, `FrontierPrioridade`) —
-  wrapping mecânico de `std::queue`/`std::stack`/`std::priority_queue`; a
-  única pegadinha é o `ComparadorF` (min-heap: `a->f() > b->f()`).
-- `BuscaGenerica.cpp`: o laço genérico exigido pelo enunciado (requisito
-  crítico, -6 pts se BFS/IDDFS/A* não compartilharem literalmente esta
-  função). Também é o lugar natural pra decidir e implementar a limpeza
-  (`delete`) dos `NoBusca*` alocados por `sucessoraCubo`/`sucessoraComHeuristica`
-  — ninguém libera esses nós ainda.
+- ~~As 3 `Frontier*` e o `BuscaGenerica.cpp` (com a limpeza dos `NoBusca*`)~~
+  — **feito** (Parte A), ver "19-09-2026 (Parte A — Frontiers + laço genérico)"
+  em "Progresso", incluindo o contrato de uso do `buscaGenerica`.
+- **Decidir a correção da heurística** — ver "Achado pro grupo:
+  `heuristicaCantos` é inadmissível" na seção da Parte A. Enquanto não for
+  decidido, bloqueia o teste comparativo da parte B (`bfs == astar` falha em
+  alguns scrambles).
+- `VisualizadorOpenGL::mostrarMensagem` ainda é `// TODO`: a integração precisa
+  dele pra mostrar os passos da solução e a quantidade de estados visitados na
+  view 3D (os dois são exigidos pelo enunciado).
 - `BFS.cpp`/`IDDFS.cpp`/`AEstrela.cpp`: wiring fino (montar `Frontier` +
   `visitados` certos e chamar `buscaGenerica`).
 - `FactoryAlgoritmo.cpp`, `Controller.cpp`, `VisualizadorTerminal.cpp`: MVP
@@ -24,7 +26,7 @@ https://www.youtube.com/watch?v=Eysf6-E3ino
   função livre tipo `embaralhar(int nMovimentos, unsigned seed)`, reusável
   tanto pelo `Controller::tratarEmbaralhar` quanto por `test_busca.cpp`.
 - **LEMBRETE DE INTEGRAÇÃO**: quando `Controller`/`VisualizadorTerminal`
-  (Pessoas B/C) estiverem prontos, precisa existir uma **tela inicial**
+  (Partes B/C) estiverem prontos, precisa existir uma **tela inicial**
   pedindo pro usuário escolher o modo de resolução antes de começar
   (Manual / BFS / IDDFS / A*) — hoje nem `VisualizadorOpenGL` nem
   `VisualizadorTerminal` têm esse menu, e `Controller::executar()` ainda é
@@ -131,6 +133,12 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
   - Efeito: nó não-raiz passa de até 17 filhos gerados (18 menos o inverso)
     para até 13 (18 menos 1 face inteira de 3 movimentos, menos 1 dos 2
     movimentos restantes do par de face oposta).
+    - *Correção (19-09-2026, Parte A)*: a poda 2 dá `continue` no laço de
+      **face** (antes do laço de `Sentido`), então corta os **3** movimentos da
+      face oposta, não só 1. O número real de filhos alterna: **12** quando a
+      última face é a de menor índice do par (U, L, F), e **15** quando é a de
+      maior índice (D, R, B), com média de ≈13,4. A conclusão de que a poda
+      reduz bem a árvore continua valendo.
   - Bugs pegos ao digitar (compilando): faltou `;` em `return filhos` e
     faltou fechar o `namespace{` (a chave da linha do `gerarFilhos` fechava
     só a função, não o namespace — sem a chave extra, `sucessoraCubo`/
@@ -268,6 +276,81 @@ A tabela CANTOS é uma copia da contida no README.md, só reorganizada como arra
     `'` = anti-horário, `2` = duplo) e ecoa o buffer sendo digitado em
     tempo real (por isso `callbackTeclado` ganhou um `glutPostRedisplay()`
     a cada tecla, não só no Enter).
+
+### 19-09-2026 (Parte A — Frontiers + laço genérico)
+- `FrontierFila`/`FrontierPilha`/`FrontierPrioridade` implementadas (wrapping de
+  `std::queue`/`std::stack`/`std::priority_queue`). `remover()` devolve
+  `nullptr` se estiver vazia. As frontiers **não são donas** dos nós: nunca dão
+  `delete`.
+- `ComparadorF`: `a->f() > b->f()` (min-heap, porque o `priority_queue` remove o
+  maior). **Empate em f → menor g primeiro.** Isso é necessário, não só
+  estético: a sucessora marca os estados como visitados já na *geração*, então o
+  primeiro nó que gera um estado fixa o g dele. Com `h ∈ {0,1,2}` consistente,
+  desempatar por maior g deixaria um nó com f igual e g maior fechar um estado
+  com g subótimo; desempatando por menor g isso não acontece.
+- `BuscaGenerica.cpp`: o laço do enunciado, linha a linha (os comentários no
+  código seguem o pseudocódigo). O arquivo não referencia BFS/IDDFS/A* em
+  código: só `IFrontier` (dá pra mostrar com grep na arguição; aparecem só em
+  comentários).
+- **Pendência do `delete` fechada** (esquema escolhido: simples, sem mexer em
+  `NoBusca.hpp`):
+  - `buscaGenerica` aloca a raiz; um nó removido que gera **0 filhos** (poda,
+    dedup ou limite de profundidade) leva `delete` na hora; um nó que gera
+    filhos vai pra um vetor `pais`.
+  - Invariante: todo nó está em exatamente um destes lugares: na frontier, em
+    `pais`, sendo o nó atual, ou já liberado. Isso vale porque `pai` só é
+    escrito na criação do filho (`Sucessora.cpp`), então um nó sem filhos não é
+    referenciado por ninguém.
+  - Limpeza por RAII (struct `DonoDosNos`): o destrutor drena a frontier e
+    libera `pais`, tanto quando acha a solução quanto quando não acha (e também
+    se houver exceção).
+  - **Trade-off**: nosso IDDFS usa memória **O(b^d)**, não O(b·d) como no
+    livro, porque `pais` guarda os nós internos da rodada pra reconstruir o
+    caminho (estimativa ~40 MB em d=6, ~500 MB em d=7). Na prática o limite do
+    IDDFS é o tempo, não a memória. Contagem de referências foi considerada e
+    descartada: exigiria campo novo em `NoBusca.hpp` e não ajudaria o BFS.
+  - Se alguém um dia fizer "reabrir nó"/trocar o `pai` de um nó no A*, o
+    `delete` imediato vira use-after-free (está comentado no código).
+- Verificado com um driver compilado direto no g++ (sem CMake nesta máquina,
+  não faz parte do repo): cubo resolvido (len 0, 1 visitado, nas 3), 18
+  scrambles de 1 a 6 movimentos (o caminho devolvido realmente resolve o cubo
+  nos 3 algoritmos, BFS == IDDFS em comprimento), caso sem solução, e um ledger
+  de `new`/`delete` confirmando **0 bytes vazados** em todos os casos.
+
+#### Contrato do `buscaGenerica` pra quem escreve BFS/IDDFS/A* (Parte B)
+- `limiteProfundidade`: `-1` = sem limite. Com `L >= 0`, nós com
+  `profundidade >= L` são avaliados mas **não expandidos**, então soluções de
+  até L movimentos são encontradas. IDDFS: laço de L = 0..`profundidadeMaxima_`.
+- `visitados`: `nullptr` (IDDFS) ou um set **vazio e novo a cada chamada**
+  (tem `assert`). O `buscaGenerica` já insere o estado inicial nele. Reaproveitar
+  o mesmo set entre as rodadas do IDDFS faria ele responder "sem solução".
+- `estadosVisitados` = estados removidos e avaliados **naquela chamada**. O IDDFS
+  precisa **somar** entre as rodadas, senão mostra só a última.
+- `caminho` vem na ordem raiz→objetivo. `estadoFinal` = estado objetivo quando
+  acha; = estado inicial quando não acha.
+- A frontier volta **vazia** depois da chamada (dá pra reusar o objeto, mas o
+  `tamanho()` no fim é sempre 0).
+
+#### ⚠️ Achado pro grupo: `heuristicaCantos` é inadmissível (A* pode sair não-ótimo)
+- `ehEstadoObjetivo` aceita **qualquer** cubo montado (24 orientações, decisão
+  registrada abaixo), mas `heuristicaCantos` mede distância só até o
+  `estadoResolvido()` fixo. No 2x2 girar o cubo inteiro é uma sequência de giros
+  de face (ex.: `U D'`), então existem estados-objetivo com h = 2.
+- Verificado: `U D'` → `ehEstadoObjetivo == true` e `heuristicaCantos == 2`
+  (18 pares de 2 movimentos dão isso); 1 movimento depois disso: h = 2 com
+  distância real 1.
+- Efeito medido no driver: BFS e IDDFS sempre batem, mas o **A* devolveu 1
+  movimento a mais** em 4 dos 18 scrambles (ex.: `R' U D2` → BFS 2, A* 3). O
+  teste `bfs.size() == astar.size()` planejado em `test_busca.cpp` **vai falhar**
+  nesses casos.
+- Correções possíveis (a decidir pelo grupo, fora da parte da Parte A):
+  1. `heuristicaCantos` = mínimo de `ceil(k/4)` entre as 24 orientações do cubo
+     resolvido. Fica admissível e consistente, mantém a decisão "qualquer cubo
+     montado é solução" e reusa `aplicarMovimento`.
+  2. `ehEstadoObjetivo` comparar com `estadoResolvido()` exato. É mais simples,
+     mas reverte a decisão abaixo.
+  - Enquanto nada disso for feito: testar `astar <= bfs + 2` e
+    `bfs == iddfs`.
 
 ## Decisões importantes (heurística e busca)
 

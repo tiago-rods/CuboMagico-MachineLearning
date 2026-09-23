@@ -13,6 +13,7 @@ add_library(cubo_core
     src/cubo/Movimento.cpp
     src/cubo/Sucessora.cpp
     src/cubo/Avaliadora.cpp
+    src/cubo/Embaralhar.cpp
     src/search/BuscaGenerica.cpp
     src/search/FrontierFila.cpp
     src/search/FrontierPilha.cpp
@@ -20,6 +21,7 @@ add_library(cubo_core
     src/search/BFS.cpp
     src/search/IDDFS.cpp
     src/search/AEstrela.cpp
+    src/view/InterpretadorComando.cpp
 )
 
 add_library(cubo_view_terminal

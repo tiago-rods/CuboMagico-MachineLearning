@@ -86,18 +86,25 @@ namespace{
     const Face TODAS_FACES[6] = {Face::U, Face::D, Face::L, Face::R, Face::F, Face::B};
     const Sentido TODOS_SENTIDOS[3] = {Sentido::HORARIO, Sentido::ANTI_HORARIO, Sentido::DUPLO};
 
+    // As duas podas de busca, compartilhadas por gerarFilhos e sucessoraComMelhorG.
+    bool facePodada(const NoBusca* atual, Face face){
+        if(atual->pai == nullptr) return false; // raiz nao tem o que podar
+        Face faceDoUltimo = atual->movimentoAplicado.face;
+
+        //poda 1: girar a mesma face 2x seguidas semrpe reduz a 1 giro só (ou identidade)
+        //mais forte que só bloquear o inverso exato, já cobre esse caso também
+        if(face == faceDoUltimo) return true;
+        //poda 2: faces opostas comutam, so gera a ordem com a face de menor indice primeiro
+        if(face == faceOposta(faceDoUltimo) && static_cast<int>(face) > static_cast<int>(faceDoUltimo)) return true;
+        return false;
+    }
+
     std::vector<NoBusca*> gerarFilhos(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados, bool calcularHeuristica){
         std::vector<NoBusca*> filhos;
 
-        bool temPai = atual->pai != nullptr;
-        Face faceDoUltimo = temPai ? atual->movimentoAplicado.face : Face::U; // só lido quando tem pai
-
         for(Face face : TODAS_FACES){
-            //poda 1: girar a mesma face 2x seguidas semrpe reduz a 1 giro só (ou identidade)
-            //mais forte que só bloquear o inverso exato, já cobre esse caso também 
-            if(temPai && face == faceDoUltimo) continue;
-            if(temPai && face == faceOposta(faceDoUltimo) && static_cast<int>(face) > static_cast<int>(faceDoUltimo)) continue;
-            
+            if(facePodada(atual, face)) continue;
+
             for(Sentido sentido : TODOS_SENTIDOS){
                 Movimento mov{face, sentido};
                 EstadoCubo novoEstado = aplicarMovimento(atual->estado, mov);
@@ -127,4 +134,33 @@ std::vector<NoBusca*> sucessoraCubo(NoBusca* atual, std::unordered_set<EstadoCub
 
 std::vector<NoBusca*> sucessoraComHeuristica(NoBusca* atual, std::unordered_set<EstadoCubo, HashEstado>* visitados) {
     return gerarFilhos(atual, visitados, true);
+}
+
+std::vector<NoBusca*> sucessoraComMelhorG(NoBusca* atual, std::unordered_map<EstadoCubo, int, HashEstado>& melhorG) {
+    std::vector<NoBusca*> filhos;
+    int gFilho = atual->profundidade + 1;
+
+    for(Face face : TODAS_FACES){
+        if(facePodada(atual, face)) continue;
+
+        for(Sentido sentido : TODOS_SENTIDOS){
+            Movimento mov{face, sentido};
+            EstadoCubo novoEstado = aplicarMovimento(atual->estado, mov);
+
+            // Checagem antes do 'new': filho descartado nunca e alocado.
+            auto registrado = melhorG.find(novoEstado);
+            if(registrado != melhorG.end() && registrado->second <= gFilho) continue;
+            melhorG[novoEstado] = gFilho;
+
+            NoBusca* filho = new NoBusca();
+            filho->estado = novoEstado;
+            filho->pai = atual;
+            filho->movimentoAplicado = mov;
+            filho->profundidade = gFilho;
+            filho->h = heuristicaCantos(novoEstado);
+
+            filhos.push_back(filho);
+        }
+    }
+    return filhos;
 }

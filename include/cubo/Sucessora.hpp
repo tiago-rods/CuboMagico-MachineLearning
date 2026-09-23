@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -20,3 +21,10 @@ std::vector<NoBusca*> sucessoraCubo(NoBusca* atual,
 // heuristicaCantos (usado pelo A*).
 std::vector<NoBusca*> sucessoraComHeuristica(NoBusca* atual,
                                               std::unordered_set<EstadoCubo, HashEstado>* visitados);
+
+// Usada pelo A*: como sucessoraComHeuristica, mas so gera um filho se o estado
+// ainda nao foi visto ou se chega nele com g menor que o melhor registrado em
+// 'melhorG' (que e atualizado). Um set de visitados descartaria o caminho
+// melhor quando a primeira geracao de um estado nao e pelo menor g.
+std::vector<NoBusca*> sucessoraComMelhorG(NoBusca* atual,
+                                          std::unordered_map<EstadoCubo, int, HashEstado>& melhorG);
