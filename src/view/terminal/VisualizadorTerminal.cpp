@@ -1,11 +1,8 @@
 #include "view/terminal/VisualizadorTerminal.hpp"
 
-#include <cctype>
 #include <iostream>
-#include <sstream>
-#include <stdexcept>
 
-#include "cubo/Movimento.hpp"
+#include "view/InterpretadorComando.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -40,19 +37,6 @@ namespace {
     }
 
     constexpr const char* kAnsiReset = "\033[0m";
-
-    std::string paraMinusculas(const std::string& texto) {
-        std::string resultado = texto;
-        for (char& c : resultado) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        return resultado;
-    }
-
-    std::string aparar(const std::string& texto) {
-        auto inicio = texto.find_first_not_of(" \t\r\n");
-        if (inicio == std::string::npos) return "";
-        auto fim = texto.find_last_not_of(" \t\r\n");
-        return texto.substr(inicio, fim - inicio + 1);
-    }
 }
 
 void VisualizadorTerminal::renderizar(const EstadoCubo& estado) {
@@ -84,60 +68,7 @@ Comando VisualizadorTerminal::lerComando() {
         return Comando{TipoComando::SAIR, {}, ""};
     }
 
-    // Alguns terminais/redirecionamentos do Windows colocam um BOM UTF-8
-    // (3 bytes invisiveis) no comeco da primeira linha lida.
-    if (entrada.size() >= 3 &&
-        static_cast<unsigned char>(entrada[0]) == 0xEF &&
-        static_cast<unsigned char>(entrada[1]) == 0xBB &&
-        static_cast<unsigned char>(entrada[2]) == 0xBF) {
-        entrada.erase(0, 3);
-    }
-
-    entrada = aparar(entrada);
-    if (entrada.empty()) {
-        return Comando{TipoComando::INVALIDO, {}, entrada};
-    }
-
-    std::istringstream fluxo(entrada);
-    std::string primeiraPalavra;
-    fluxo >> primeiraPalavra;
-    std::string resto;
-    std::getline(fluxo, resto);
-    resto = aparar(resto);
-
-    const std::string palavra = paraMinusculas(primeiraPalavra);
-
-    if (palavra == "sair" || palavra == "exit" || palavra == "quit") {
-        return Comando{TipoComando::SAIR, {}, ""};
-    }
-    if (palavra == "estado" || palavra == "mostrar") {
-        return Comando{TipoComando::MOSTRAR_ESTADO, {}, ""};
-    }
-    if (palavra == "bfs") {
-        return Comando{TipoComando::RESOLVER_BFS, {}, ""};
-    }
-    if (palavra == "iddfs") {
-        return Comando{TipoComando::RESOLVER_IDDFS, {}, ""};
-    }
-    if (palavra == "astar" || palavra == "a*") {
-        return Comando{TipoComando::RESOLVER_ASTAR, {}, ""};
-    }
-    if (palavra == "embaralhar") {
-        return Comando{TipoComando::EMBARALHAR, {}, resto};
-    }
-    if (palavra == "trocar") {
-        return Comando{TipoComando::TROCAR_VIEW, {}, paraMinusculas(resto)};
-    }
-
-    std::string tokenMovimento = entrada;
-    for (char& c : tokenMovimento) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-
-    try {
-        Movimento movimento = parseMovimento(tokenMovimento);
-        return Comando{TipoComando::MOVIMENTO, movimento, entrada};
-    } catch (const std::invalid_argument&) {
-        return Comando{TipoComando::INVALIDO, {}, entrada};
-    }
+    return interpretarComando(entrada);
 }
 
 void VisualizadorTerminal::mostrarMensagem(const std::string& mensagem) {

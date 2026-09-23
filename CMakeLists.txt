@@ -21,6 +21,7 @@ add_library(cubo_core
     src/search/BFS.cpp
     src/search/IDDFS.cpp
     src/search/AEstrela.cpp
+    src/view/InterpretadorComando.cpp
 )
 
 add_library(cubo_view_terminal

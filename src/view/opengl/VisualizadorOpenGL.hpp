@@ -34,7 +34,8 @@ private:
 
     std::string bufferComando_;
     bool comandoPronto_ = false;
-    Comando comandoLido_; 
+    Comando comandoLido_;
+    std::string ultimaMensagem_;
 
     bool animando_ = false;
     Face faceAnimando_ = Face::U;
