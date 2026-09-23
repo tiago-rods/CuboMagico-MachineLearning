@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "cubo/Avaliadora.hpp"
+#include "cubo/Embaralhar.hpp"
 #include "cubo/EstadoCubo.hpp"
 #include "cubo/Sucessora.hpp"
 #include "search/AEstrela.hpp"
@@ -56,7 +57,13 @@ TEST_CASE("BFS") {
         CHECK(ehEstadoObjetivo(aplicarCaminho(estadoResolvido(), resultado.caminho)));
     }
 
-    // TODO: 1 movimento e "caminho resolve" com embaralhar(n, seed) da Pessoa C.
+    SUBCASE("scramble de 1 movimento: solucao de 1 passo que resolve o cubo") {
+        EstadoCubo embaralhado = embaralhar(1, 42);
+        ResultadoBusca resultado = bfs.resolver(embaralhado);
+        REQUIRE(resultado.encontrou);
+        CHECK(resultado.caminho.size() == 1);
+        CHECK(ehEstadoObjetivo(aplicarCaminho(embaralhado, resultado.caminho)));
+    }
 }
 
 TEST_CASE("IDDFS") {
@@ -70,7 +77,13 @@ TEST_CASE("IDDFS") {
         CHECK(ehEstadoObjetivo(aplicarCaminho(estadoResolvido(), resultado.caminho)));
     }
 
-    // TODO: 1 movimento e "caminho resolve" com embaralhar(n, seed) da Pessoa C.
+    SUBCASE("scramble de 1 movimento: solucao de 1 passo que resolve o cubo") {
+        EstadoCubo embaralhado = embaralhar(1, 42);
+        ResultadoBusca resultado = iddfs.resolver(embaralhado);
+        REQUIRE(resultado.encontrou);
+        CHECK(resultado.caminho.size() == 1);
+        CHECK(ehEstadoObjetivo(aplicarCaminho(embaralhado, resultado.caminho)));
+    }
 }
 
 TEST_CASE("A*") {
@@ -84,14 +97,59 @@ TEST_CASE("A*") {
         CHECK(ehEstadoObjetivo(aplicarCaminho(estadoResolvido(), resultado.caminho)));
     }
 
-    // TODO: 1 movimento e "caminho resolve" com embaralhar(n, seed) da Pessoa C.
+    SUBCASE("scramble de 1 movimento: solucao de 1 passo que resolve o cubo") {
+        EstadoCubo embaralhado = embaralhar(1, 42);
+        ResultadoBusca resultado = aEstrela.resolver(embaralhado);
+        REQUIRE(resultado.encontrou);
+        CHECK(resultado.caminho.size() == 1);
+        CHECK(ehEstadoObjetivo(aplicarCaminho(embaralhado, resultado.caminho)));
+    }
 }
 
 TEST_CASE("BFS, IDDFS e A* encontram solucoes do mesmo tamanho otimo") {
-    // TODO: gerar scrambles pequenos (1 a 5 movimentos) com embaralhar(n, seed)
-    // e comparar resultado.caminho.size() entre os 3 algoritmos.
+    // BFS e IDDFS sao garantidamente otimos (custo uniforme, busca completa) e
+    // por isso tem que bater entre si sempre. heuristicaCantos ja foi
+    // documentada pelo grupo como NAO admissivel em alguns casos (ver
+    // docs/decisoes-pessoa-b.md > "Heuristica - em aberto"; ex. reproduzido la:
+    // "L2 R R R' L' U2" da BFS/IDDFS=2 e A*=3), entao aqui so cobramos que a
+    // solucao do A* e valida e nunca mais curta que o otimo - nao cobramos
+    // igualdade estrita com A* ate a heuristica ser corrigida em grupo.
+    for (int nMovimentos = 1; nMovimentos <= 5; ++nMovimentos) {
+        CAPTURE(nMovimentos);
+        unsigned seed = 1000u + static_cast<unsigned>(nMovimentos);
+        EstadoCubo embaralhado = embaralhar(nMovimentos, seed);
+
+        BFS bfs;
+        IDDFS iddfs;
+        AEstrela aEstrela;
+
+        ResultadoBusca doBfs = bfs.resolver(embaralhado);
+        ResultadoBusca doIddfs = iddfs.resolver(embaralhado);
+        ResultadoBusca doAstar = aEstrela.resolver(embaralhado);
+
+        REQUIRE(doBfs.encontrou);
+        REQUIRE(doIddfs.encontrou);
+        REQUIRE(doAstar.encontrou);
+
+        CHECK(doBfs.caminho.size() == doIddfs.caminho.size());
+        CHECK(ehEstadoObjetivo(aplicarCaminho(embaralhado, doAstar.caminho)));
+        CHECK(doAstar.caminho.size() >= doBfs.caminho.size());
+    }
 }
 
 TEST_CASE("A* visita menos estados que BFS em scrambles mais profundos") {
-    // TODO: <= ou < ainda em aberto (docs/decisoes-pessoa-b.md).
+    // "<=" e nao "<": o grupo ainda nao decidiu qual das duas cobrar
+    // (docs/decisoes-pessoa-b.md); no pior caso empatam, mas A* com uma
+    // heuristica informativa nunca deveria visitar mais estados que o BFS.
+    EstadoCubo embaralhado = embaralhar(7, 777);
+
+    BFS bfs;
+    AEstrela aEstrela;
+
+    ResultadoBusca doBfs = bfs.resolver(embaralhado);
+    ResultadoBusca doAstar = aEstrela.resolver(embaralhado);
+
+    REQUIRE(doBfs.encontrou);
+    REQUIRE(doAstar.encontrou);
+    CHECK(doAstar.estadosVisitados <= doBfs.estadosVisitados);
 }

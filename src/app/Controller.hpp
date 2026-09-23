@@ -16,8 +16,9 @@ public:
 
 private:
     void tratarMovimento(const Comando& comando);
-    void tratarEmbaralhar();
+    void tratarEmbaralhar(const std::string& argumento);
     void tratarResolver(std::unique_ptr<IAlgoritmoBusca> algoritmo);
+    void tratarTrocarView(const std::string& argumento);
 
     std::unique_ptr<IVisualizador> visualizador_;
     EstadoCubo estadoAtual_;
