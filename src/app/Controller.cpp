@@ -61,11 +61,16 @@ void Controller::executar() {
 }
 
 void Controller::tratarMovimento(const Comando& comando) {
-    estadoAtual_ = aplicarMovimento(estadoAtual_, comando.movimento);
+    animarEAplicar(comando.movimento);
 
     if (ehEstadoObjetivo(estadoAtual_)) {
         visualizador_->mostrarMensagem("Parabens! O cubo foi resolvido!");
     }
+}
+
+void Controller::animarEAplicar(const Movimento& movimento) {
+    visualizador_->animarMovimento(movimento);
+    estadoAtual_ = aplicarMovimento(estadoAtual_, movimento);
 }
 
 void Controller::tratarEmbaralhar(const std::string& argumento) {
@@ -114,7 +119,10 @@ void Controller::tratarResolver(std::unique_ptr<IAlgoritmoBusca> algoritmo) {
         std::to_string(resultado.caminho.size()) + " movimentos, visitando " +
         std::to_string(resultado.estadosVisitados) + " estados:\n  " + passos);
 
-    estadoAtual_ = resultado.estadoFinal;
+    for (const Movimento& movimento : resultado.caminho) {
+        animarEAplicar(movimento);
+        visualizador_->renderizar(estadoAtual_);
+    }
 }
 
 void Controller::tratarTrocarView(const std::string& argumento) {

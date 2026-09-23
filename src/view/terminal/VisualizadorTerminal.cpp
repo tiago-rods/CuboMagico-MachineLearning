@@ -74,3 +74,8 @@ Comando VisualizadorTerminal::lerComando() {
 void VisualizadorTerminal::mostrarMensagem(const std::string& mensagem) {
     std::cout << mensagem << "\n";
 }
+
+void VisualizadorTerminal::animarMovimento(const Movimento&) {
+    // Terminal nao anima: o Controller chama renderizar() logo em seguida
+    // com o estado ja atualizado.
+}

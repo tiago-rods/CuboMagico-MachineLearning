@@ -8,4 +8,5 @@ public:
     void renderizar(const EstadoCubo& estado) override;
     Comando lerComando() override;
     void mostrarMensagem(const std::string& mensagem) override;
+    void animarMovimento(const Movimento& movimento) override;
 };
