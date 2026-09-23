@@ -55,12 +55,12 @@ bool VisualizadorOpenGL::cantoNaFace(int indiceCanto, Face face) const {
 }
 
 
-void VisualizadorOpenGL::animarMovimento(const Movimento& mov) {
+void VisualizadorOpenGL::animarMovimento(const Movimento& movimento) {
     const int totalFrames = 24;
-    const float anguloFinal = anguloPorSentido(mov.sentido);
+    const float anguloFinal = anguloPorSentido(movimento.sentido);
 
     animando_ = true;
-    faceAnimando_ = mov.face;
+    faceAnimando_ = movimento.face;
 
     for(int frame = 1; frame <= totalFrames; ++frame){
         anguloAnimacao_ = anguloFinal * frame / static_cast<float>(totalFrames);
@@ -231,12 +231,10 @@ void VisualizadorOpenGL::callbackTeclado(unsigned char tecla, int x, int y){
 }
 
 void VisualizadorOpenGL::processarBuffer(){
+    // Nao anima aqui: quem decide quando animar um movimento e' o Controller
+    // (via animarMovimento()), tanto para movimentos manuais quanto para os
+    // passos de uma solucao encontrada pela IA.
     comandoLido_ = interpretarComando(bufferComando_);
-
-    if (comandoLido_.tipo == TipoComando::MOVIMENTO) {
-        animarMovimento(comandoLido_.movimento);
-    }
-
     bufferComando_.clear();
     comandoPronto_ = true;
 }

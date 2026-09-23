@@ -13,6 +13,7 @@ int main() {
 
         Comando comando = view.lerComando();
         if (comando.tipo == TipoComando::MOVIMENTO) {
+            view.animarMovimento(comando.movimento);
             estado = aplicarMovimento(estado, comando.movimento);
         }
     }

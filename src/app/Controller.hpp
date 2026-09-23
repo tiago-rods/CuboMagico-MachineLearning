@@ -19,6 +19,7 @@ private:
     void tratarEmbaralhar(const std::string& argumento);
     void tratarResolver(std::unique_ptr<IAlgoritmoBusca> algoritmo);
     void tratarTrocarView(const std::string& argumento);
+    void animarEAplicar(const Movimento& movimento);
 
     std::unique_ptr<IVisualizador> visualizador_;
     EstadoCubo estadoAtual_;
